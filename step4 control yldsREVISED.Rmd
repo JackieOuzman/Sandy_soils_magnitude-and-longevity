@@ -1,0 +1,2041 @@
+---
+title: "Control yields revised 24/3/2022"
+author: "Jackie Ouzman"
+date: "10/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+#library(multcompView)
+
+library(plotly)
+
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(forcats)
+library(hrbrthemes)
+library(stringr)
+#install.packages("hrbrthemes")
+
+library(ggpubr)
+
+
+```
+
+This report will create 2 data frames and graph them.
+
+
+## Control yields.
+
+
+
+DF 1 is the control yields and treatment yields generated from the data supplied from database.
+
+- splitting up the descriptors so they can be used as a filter this creates a number of new clm
+
+- add yield gain clm
+
+
+DF 2 is the cumulative control yields this is generated from DF 1 but the yield is summed.
+
+- the yield is by grouping the site, rep and descriptor, so all yield for the years are summed.
+
+  Note that this assumes that we only have unique values for site, descriptor and rep.
+  If the site has a treatments (or control) with 2 reps labelled rep 1 both of the yield will be used in the sum calculation.
+
+- splitting up the descriptors so they can be used as a filter this creates a number of new clm
+
+- add yield gain clm
+
+
+
+
+
+
+
+
+
+Note everything runs off of the rep specified in the raw data.
+I have run into problems with Younghusband, because the rep are not like the other sites.
+For the control the raw data has 4 yield results that are labelled rep 1.
+
+This means that the ID (which is supposed to unique is not)
+
+I have created a new rep which is the clm called bay number and the rep to create a rep_block
+so for the control I have how have 
+rep block called
+Bay 1 rep 1
+Bay 1 rep 2
+
+
+Another problem with Younghusband is that they moved the control from year to year.
+As a result I have only included treatments that run over the two years, this means no control for this Younghusband data in the DB.
+We do have controls for each year but they cannot be put togther in the DB for multiple years.
+
+....
+
+
+```{r Get the data, include=FALSE}
+#################################################################################################################
+####   Get the data #####
+
+
+
+#####################################################################################################################
+
+
+# data_file_control <- "X:/Therese_Jackie/Sandy_soils/Development_database/other_sites_working/stats_working/sites_control_merged.csv"
+
+data_file_control <- "X:/Therese_Jackie/Sandy_soils/Development_database/completeDB/sites_control_merged.csv"
+
+
+## download the data using the specified file path above
+
+# summary_data_all <- read_csv(data_file, 
+#                              col_types = cols(rep_block = col_character()))
+summary_control_data_all <- read_csv(data_file_control, 
+                            col_types = cols(rep_block = col_character()))
+
+
+
+
+
+
+
+
+
+unique(summary_control_data_all$site_sub)
+unique(summary_control_data_all$site)
+
+str(summary_control_data_all)
+
+
+
+##label problem with Mt Damper
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(
+    site_sub = case_when(
+      site_sub == "Mt Damper" ~ "Mt_Damper",
+      TRUE ~ site_sub))
+
+##label problem with Ouyen
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(
+    site_sub = case_when(
+      site_sub == "Oyen_Spade" ~ "Ouyen_Spade",
+      TRUE ~ site_sub))
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(
+    site = case_when(
+      site == "Oyen_Spade" ~ "Ouyen_Spade",
+      TRUE ~ site))
+
+
+## list of sites that are ready ish
+
+list_sites_ready <- c("Brimpton Lake",
+                      "Brooker",
+                      "Buckleboo",
+                      "Bute_CSIRO",
+                      "Bute_Trengrove",
+                      "Cadgee",
+                      "Carwarp_Amelioration",
+                      "Cummins",
+                      "Karkoo",
+                      "Karoonda",
+                      "Kooloonong_canola",
+                      "Kooloonong_chickpea",
+                      "Kooloonong_lentil",
+                      "Kooloonong_lupin",
+                      "Kybunga",#newly added
+                      "Lowaldie_Crest",
+                      "Lowaldie_Deep sand",
+                      "Malinong", #newly added
+                      "Monia_Gap", #newly added
+                      "Mt Damper",
+                      "Mt_Damper",
+                      "Murlong",
+                      "Oyen_Spade",
+                      "Ouyen_Spade",
+                      "Sherwood",
+                      "Telopea_Downs",
+                      "Tempy",
+                      "Waikerie",
+                      "Warnertown", #newly added
+                      "Wynarka",
+                      "Yenda",
+                      #"Younghusband",#it has no controls
+                      "Ouyen_Placement"
+                      )
+
+
+
+
+summary_control_data_all <- summary_control_data_all %>% 
+  filter(site_sub %in% list_sites_ready  )
+
+
+```
+
+
+
+The next few steps is creating a df that splits up the descriptors
+into grouping
+
+##### DF 1 - step 1 is the soil modification
+
+
+
+  
+```{r working out how many modification all 1, message=FALSE, warning=FALSE, include=FALSE}
+#####################################################################################
+#####  soil modifications      #####
+#####################################################################################
+
+### get the soil modification from the Descriptors
+
+#1 soil modification with depth
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_depth =  str_extract(summary_control_data_all$Descriptors, "[^_]+"))#keep everything before the first_
+
+
+#1.1 Youndhusband has 'Unmodified+DeepTill.18' which needs to be recoded as "Unmodified"
+
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_depth = case_when(
+         soil_modification_depth == "Unmodified+DeepTill.18" ~ "Unmodified",
+         TRUE ~ soil_modification_depth))
+
+#how many modification_depth
+soil_modification_depth <- summary_control_data_all %>% 
+  distinct(soil_modification_depth) %>% 
+  arrange(soil_modification_depth) %>% 
+  filter(soil_modification_depth != "Unmodified")
+
+count(soil_modification_depth) #20 excluding the unmodified
+
+
+#1a working clms - soil modification without depth 1 only
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_1 =  str_extract(summary_control_data_all$Descriptors, "[^.]+"))#keep everything before the first .
+
+#the Unmodified seems to have a problem this fixes it :)
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_1 = str_extract(summary_control_data_all$soil_modification_1, "[^_]+")) #keep everything after the first _
+
+#1a.1 Youndhusband has 'Unmodified+DeepTill.18' which needs to be recoded as "Unmodified"
+
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_1 = case_when(
+    soil_modification_1 == "Unmodified+DeepTill" ~ "Unmodified",
+    TRUE ~ soil_modification_1))
+
+summary_control_data_all %>%  distinct(soil_modification_1) %>% arrange(soil_modification_1)
+
+
+
+
+
+#1a working clms - 2 soil modification without depth 2
+
+#temp <- summary_control_data_all %>%  distinct(soil_modification_depth) %>% arrange(soil_modification_depth)
+
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification_2 = case_when(
+    soil_modification_depth == "Rip.50Spade.30" ~        "Rip+Spade",
+    soil_modification_depth == "Rip.60Spade.30" ~        "Rip+Spade",
+    soil_modification_depth == "Rip.45IncRip+Spade.30" ~ "IncRip+Spade",
+    soil_modification_depth == "Rip.60IncRip+Spade.30" ~ "IncRip+Spade",
+    
+    soil_modification_depth == "Rip.30IncRip" ~           "IncRip",
+    soil_modification_depth == "Rip.40IncRip" ~           "IncRip",
+    soil_modification_depth == "Rip.45IncRip" ~           "IncRip",
+    soil_modification_depth == "Rip.50IncRip" ~           "IncRip",
+    soil_modification_depth == "Rip.60IncRip" ~           "IncRip",
+    
+    
+    TRUE ~ "NA"
+  ))
+
+
+
+
+
+
+#2 all soil modification without depth (if 2 soil modification used keep this)	
+
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(soil_modification = case_when(
+    soil_modification_2 == "NA" ~ soil_modification_1,
+    TRUE ~ soil_modification_2
+  ))
+
+
+### remove the working clms
+summary_control_data_all <- summary_control_data_all %>% 
+  dplyr::select(-soil_modification_1,
+         -soil_modification_2)
+
+
+#how many modification without depth
+soil_modification_depth <- summary_control_data_all %>% 
+  distinct(soil_modification) %>% 
+  arrange(soil_modification) %>% 
+  filter(soil_modification != "Unmodified")
+
+count(soil_modification_depth) #8 excluding the unmodified 
+
+
+
+#####################################################################################
+#####  soil amendments      #####
+#####################################################################################
+back_up <- summary_control_data_all
+### get the soil Amendment from the Descriptors
+# gets all the amendments
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_all = sub("^[^_]*_", "", summary_control_data_all$Descriptors)) #keep everything after the first _
+#pull out the first amendment listed but has rates
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_1 = str_extract(summary_control_data_all$amendment_all, "[^.]+"))#keep everything before the first 
+#removed the rates in the first amendment listed 
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_1 = str_extract(summary_control_data_all$amendment_1, "[^@]+")) #keep everything before the first @
+
+#temp <- summary_control_data_all %>%  distinct(amendment_1) %>% arrange(amendment_1)
+
+
+#pull out the second amendment listed but has rates (_/.)
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_2a = sub("^[^.]*.", "", summary_control_data_all$amendment_all)) 
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_2b = sub("^[^.]*.", "", summary_control_data_all$amendment_2a)) 
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_2 = str_extract(summary_control_data_all$amendment_2b, "[^.]+"))
+
+#temp <- summary_control_data_all %>%  distinct(amendment_2) %>% arrange(amendment_2)
+
+
+
+### not quite right remove some problems!
+unique(summary_control_data_all$amendment_2)
+
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_2 = case_when(
+    amendment_2 ==  "surface_Yr18,19,20" ~ "",
+    amendment_2 ==  "incorp_50" ~ "",
+    amendment_2 ==  "band_30" ~ "",
+    amendment_2 ==  "band_50" ~ "",
+    amendment_2 ==  "surface" ~ "",
+    
+    TRUE ~ amendment_2
+  ))
+unique(summary_control_data_all$amendment_2)
+
+
+
+#pull out the thrid amendment listed but has rates (_/.)
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_3a = sub("^[^.]*.", "", summary_control_data_all$amendment_2b)) 
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_3b = sub("^[^.]*.", "", summary_control_data_all$amendment_3a)) 
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(amendment_3 = str_extract(summary_control_data_all$amendment_3b, "[^.]+"))
+
+
+temp <- summary_control_data_all %>%  distinct(amendment_3) %>% arrange(amendment_3)
+
+
+### bugger the timing year for amenedment 2 is stuffed up!
+unique(summary_control_data_all$amendment_1)
+unique(summary_control_data_all$amendment_2)
+unique(summary_control_data_all$amendment_3)
+
+
+
+## amendments 1, 2, 3 together.
+str(summary_control_data_all)
+
+
+summary_control_data_all$amendment_1 <-  
+  stringr::str_replace_na(summary_control_data_all$amendment_1 , replacement='')
+
+summary_control_data_all$amendment_2 <-  
+  stringr::str_replace_na(summary_control_data_all$amendment_2 , replacement='')  
+
+summary_control_data_all$amendment_3 <-  
+  stringr::str_replace_na(summary_control_data_all$amendment_3 , replacement='')
+
+
+summary_control_data_all <-  summary_control_data_all %>% 
+  mutate(amendment_123 = paste0(amendment_1,
+                                amendment_2,
+                                amendment_3))
+
+
+#tidy up working outs
+summary_control_data_all <- summary_control_data_all %>%
+  dplyr::select(-amendment_2a, -amendment_2b, -amendment_3a, -amendment_3b)
+
+unique(summary_control_data_all$amendment_123)
+#how many amendment without depth
+amendment_no_depth <- summary_control_data_all %>%
+  distinct(amendment_123) %>%
+  arrange(amendment_123) %>%
+  filter(amendment_123 != "none")
+
+count(amendment_no_depth) #28 excluding the none
+```
+
+
+
+##### DF 1 - step 2 is the amendments
+
+
+Add code for amendments classed as
+
+- animal
+
+- plant
+
+- non organic
+
+- none
+
+- mixed
+
+```{r code for amendment plant and animals, message=FALSE, warning=FALSE, include=FALSE}
+
+summary_control_data_all<- summary_control_data_all %>% 
+  mutate(amendment_code1 = case_when(
+    amendment_123 ==  "none" ~ "none",
+    
+    amendment_123 == "drill_20+7"              ~ "none",
+    amendment_123 == "30+30_none_annual"       ~ "none",
+    amendment_123 == "drill_20+20_none"        ~ "none",
+    amendment_123 == "drill_20+20_none_annual" ~ "none",
+    amendment_123 == "30+7"                    ~ "none",
+    amendment_123 == "30+30_none"              ~ "none",
+
+    
+    amendment_123 ==  "Cl" ~ "animal",
+    
+    amendment_123 ==  "Lc" ~ "plant",
+    amendment_123 ==  "Cereal" ~ "plant",
+    amendment_123 ==  "Vetch" ~ "plant",
+    amendment_123 ==  "Vet_Cer" ~ "plant",
+    amendment_123 ==  "Vet_Cer_In" ~ "plant", 
+    amendment_123 ==  "Com" ~ "plant",
+    
+    amendment_123 ==  "Fert" ~        "fertiliser",
+    amendment_123 ==  "Fert_High"   ~ "fertiliser",
+    amendment_123 ==  "Fert_Low"    ~ "fertiliser",
+    amendment_123 ==  "Fert_APP"    ~ "fertiliser",
+    amendment_123 ==  "K_added"     ~ "fertiliser",
+    amendment_123 ==  "FertK_added" ~ "fertiliser",
+    amendment_123 ==  "30+30_Fert"  ~ "fertiliser",
+    amendment_123 ==  "drill_20+20_Fert" ~ "fertiliser",
+    
+    amendment_123 ==  "Gypsum" ~ "non organic",
+    amendment_123 ==  "Clay" ~ "non organic",
+    amendment_123 ==  "Lime" ~ "non organic",
+    amendment_123 ==  "Bi_Agra" ~ "non organic",
+    amendment_123 ==  "SE14" ~ "non organic",
+    
+    
+    amendment_123 ==  "ClFertClay" ~ "mixed",
+    amendment_123 ==  "ClFert" ~ "mixed",
+    amendment_123 ==  "ClClay" ~ "mixed",
+    amendment_123 ==  "ClLime" ~ "mixed",
+    amendment_123 ==  "ClGypsum" ~ "mixed",
+    
+    amendment_123 ==  "LcFert" ~ "mixed",
+    amendment_123 ==  "LcClay" ~ "mixed",
+    amendment_123 ==  "LcFertClay" ~ "mixed",
+    amendment_123 ==  "LcK_added" ~ "mixed",
+    
+    amendment_123 ==  "FertClay" ~ "mixed",
+    
+    
+    TRUE ~ "check"
+    
+    
+  ))
+  
+```
+
+
+##### DF 1 - step 3 make a new column of yield gains
+
+
+```{r yld gains cals, message=FALSE, warning=FALSE, include=FALSE}
+#### Yld gain #####
+
+#### need to make a yield gain clm first
+summary_control_data_all <- summary_control_data_all %>% 
+  mutate(yield_gain = yield-control_yield, na.rm = TRUE)
+
+
+
+```
+
+
+Some fast facts.
+
+
+
+
+
+
+```{r how many sites all, echo=FALSE, message=FALSE, warning=FALSE}
+
+#How many site?
+sites <- summary_control_data_all %>%
+  distinct(site)%>%
+  count()
+
+#how many Descriptors?
+descriptors <- summary_control_data_all %>%
+  distinct(Descriptors)%>%
+  count()
+
+#how many soil_modification_ with all depth?
+soil_modification_depth <- summary_control_data_all %>%
+  distinct(soil_modification_depth)%>%
+  count()
+
+#how many soil_modification?
+soil_modification <- summary_control_data_all %>%
+  distinct(soil_modification)%>%
+  count()
+
+#how many amendment_all? the 123 has the application depth removed
+amendment_all <- summary_control_data_all %>%
+  distinct(amendment_123)%>%
+  count()
+
+
+#how many amendment coded into plant, animal, other etc?
+amendment_code <- summary_control_data_all %>%
+  distinct(amendment_code1)%>%
+  count()
+
+count = c(
+  sites[[1]],
+  descriptors[[1]],
+  soil_modification_depth[[1]],
+  soil_modification[[1]],
+  amendment_all[[1]],
+  amendment_code[[1]]
+)
+count_of = c(
+  "sites",
+  "descriptors",
+  "soil_modification_depth",
+  "soil_modification",
+  "amendment_all",
+  "amendment_code"
+) 
+ 
+       
+df = data.frame( count_of, count)      
+df
+
+```
+
+
+
+##### DF 2 - Cumulative yields
+
+
+
+```{r cum yld cals, message=FALSE, warning=FALSE, include=FALSE}
+
+names(summary_control_data_all)
+
+#keep the rep but not the year
+cum_yld_control <- summary_control_data_all %>% 
+  dplyr::group_by(site, Descriptors,rep_block, soil_modification, amendment_123, amendment_code1 ) %>% 
+  
+  
+  dplyr::summarise(sum_yld =          sum(yield, na.rm = TRUE),
+                   sum__control_yld = sum(control_yield, na.rm = TRUE),
+                   sum__yld_gain =    sum(yield_gain, na.rm = TRUE),
+                   
+                   max_yr_post_amelioration = max(yr_post_amelioration  , na.rm = TRUE)+1,
+                   check_yld_value = (sum_yld/max_yr_post_amelioration),
+                   check_yld_control_value = (sum__control_yld/max_yr_post_amelioration),
+                   check_yld_gain_value =    (sum__yld_gain/max_yr_post_amelioration)
+                   )
+
+
+cum_yld_control <- cum_yld_control %>% 
+  mutate(`length of trial` = as.factor(max_yr_post_amelioration))
+
+cum_yld_control <- dplyr::ungroup(cum_yld_control)
+
+```
+
+```{r tidy up, message=FALSE, warning=FALSE, include=FALSE}
+
+
+rm(temp, back_up, amendment_no_depth, soil_modification_depth, data_file_control, list_sites_ready)
+
+```
+
+
+
+
+
+
+# Plots 
+
+Drawing on the 2 DF created
+
+
+
+
+
+
+
+## Scatter Plots control vs treatments
+
+- Per site, treatment and year
+
+- This means that sites with long running trials have represented more in the graph
+
+- Sites with lots of treatments are also represented more 
+
+  e.g. sites with different rates of chicken litter etc
+  
+  
+
+**Comment:** 
+
+The below graph shows that doing 'anything' is likely to lift you yield compared to a control
+
+But this is not always the case
+
+For some sites and years and treatments the yield is lower than the control
+
+These are data points below the 1:1 line.
+
+
+
+```{r plot all, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = summary_control_data_all, mapping = aes(control_yield, yield,)) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  geom_point(alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  scale_x_continuous(breaks=seq(0,10,by=0.5))+
+  scale_y_continuous(breaks=seq(0,10,by=0.5))+
+  theme_bw()+
+  labs(title = "Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")
+```
+
+```{r scatter plot all, eval=FALSE, message=TRUE, warning=FALSE, include=FALSE}
+
+# every treatment yield point that has a matching control yld is displayed
+
+scatter_control_vs_trial <- ggplot(data = summary_control_data_all, mapping = aes(control_yield, yield,)) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  geom_point(alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  labs(title = "Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")
+
+scatter_control_vs_trial
+
+ggplotly(scatter_control_vs_trial)
+
+
+```
+
+
+
+
+## Scatter Plots control vs treatments with Facet wrap is sites
+
+**Comment:** 
+
+- Plotting each site shows that some sites have lower yields than others
+
+- This is a good check for outliers or errors
+
+
+```{r scatter plot all facet sub site post, echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = summary_control_data_all, mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  # scale_x_continuous(breaks=seq(0,10,by=0.5))+
+  # scale_y_continuous(breaks=seq(0,10,by=0.5))+
+  theme_bw()+
+  labs(title = "Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control
+       \nFacet wrap is sites",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ site_sub)
+
+```
+
+## Scatter Plots control vs treatments with Facet wrap is soil modification
+
+**Comment:** 
+
+- The soil modification also includes any amendments 
+
+   e.g include clay fertilsier, or no amendments - all treatments are included.
+
+- The unmodified has been filtered out 
+
+
+
+  
+
+```{r scatter modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+## change the order of the modification
+order_modification <- c("Rip",
+                        "Rip+Spade", 
+                        "Spade", 
+                        "Sweep" , 
+                        "IncRip" ,
+                        "IncRip+Spade",
+                        "DiscInv",
+                        "Unmodified" )
+summary_control_data_all$soil_modification <- factor(summary_control_data_all$soil_modification,
+                                         levels = order_modification)
+
+summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  labs(title = "Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control
+       \nFacet wrap is modification",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ soil_modification)
+
+
+```
+
+
+## Therese wanted some graphs / plots for the agronomy confernece talk 16/9/2022
+## Scatter Plots control vs treatments and yield gain over years -  just ripping
+
+
+```{r scatter ripping only Agro Conf talk, echo=FALSE, message=FALSE, warning=FALSE}
+
+## change the order of the modification
+order_modification <- c("Rip",
+                        "Rip+Spade", 
+                        "Spade", 
+                        "Sweep" , 
+                        "IncRip" ,
+                        "IncRip+Spade",
+                        "DiscInv",
+                        "Unmodified" )
+summary_control_data_all$soil_modification <- factor(summary_control_data_all$soil_modification,
+                                         levels = order_modification)
+
+rip <- summary_control_data_all %>%  
+  #filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification == "Rip") %>% 
+ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE, na.rm = TRUE) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(title = "All treatments that involves ripping\n Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control",
+       x = "Control yield t/ha", y = "Treatment yield t/ha")
+
+
+
+rip
+rip_no_title <- summary_control_data_all %>%  
+  #filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification == "Rip") %>% 
+ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE, na.rm = TRUE) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(x = "Control yield t/ha", y = "Treatment yield t/ha")
+
+
+ggsave(rip_no_title,
+       device = "png",
+       filename = "Yield response _All treatments that involves ripping_.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+rip_yld_reponse_vs_control <- summary_control_data_all %>%  
+    filter(soil_modification == "Rip")
+
+write.csv(rip_yld_reponse_vs_control,
+"X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/rip_yld_reponse_vs_control.csv",
+row.names = FALSE)
+
+```
+
+```{r box ripping only Agro Conf talk, echo=FALSE, message=FALSE, warning=FALSE}
+
+rip_box <- summary_control_data_all %>% 
+  filter(!is.na(yr_post_amelioration )) %>% 
+  filter(soil_modification == "Rip") %>% 
+ggplot( mapping = aes(yr_post_amelioration, yield_gain, group = as.factor(yr_post_amelioration))) +
+  theme_bw()+
+  geom_boxplot(outlier.shape = NA,
+               #alpha = 0.2
+               )+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(title = "All treatments that involves ripping\n Control yield - all data = yield gain- no summary\nnote each site, treatment, year and rep is matched to control",
+      x = "Years post ripping", y = "Yield gain t/ha")
+
+rip_box
+#################### SAME AS ABOVE BUT DIFFERENT FORMATS #############################################
+rip_box_no_title <- summary_control_data_all %>% 
+  filter(!is.na(yr_post_amelioration )) %>% 
+  filter(soil_modification == "Rip") %>% 
+ggplot( mapping = aes(yr_post_amelioration, yield_gain, group = as.factor(yr_post_amelioration))) +
+  theme_bw()+
+  geom_boxplot(outlier.shape = NA,
+               #alpha = 0.2
+               )+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(x = "Years post ripping", y = "Yield gain t/ha")
+
+ggsave(rip_box_no_title,
+       device = "png",
+       filename = "Yield gain over years _All treatments that involves ripping_.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+
+```
+
+
+
+## Therese wanted some graphs / plots for the agronomy confernece talk 16/9/2022
+## Scatter Plots control vs treatments and yield gain over years - just ripping and spading
+
+
+
+```{r scatter rip and spade only Agro Conf talk, echo=FALSE, message=FALSE, warning=FALSE}
+
+## change the order of the modification
+order_modification <- c("Rip", ##this one
+                        "Rip+Spade",  ##this one
+                        "Spade",  ##this one
+                        "Sweep" , 
+                        "IncRip" ,##this one
+                        "IncRip+Spade",##this one
+                        "DiscInv",
+                        "Unmodified" )
+summary_control_data_all$soil_modification <- factor(summary_control_data_all$soil_modification,
+                                         levels = order_modification)
+
+rip_spade <- summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification != "Sweep") %>% 
+  filter(soil_modification != "DiscInv") %>% 
+ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE, na.rm = TRUE) +
+  # stat_regline_equation(
+  #   aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+  #   formula = (y ~ x)
+  # ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(title = "All treatments that involves ripping and spading\n Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control",
+       x = "Control yield t/ha", y = "Treatment yield t/ha")+
+  facet_wrap(.~ soil_modification)
+
+
+
+rip_spade
+
+
+rip_spade_no_title <- summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification != "Sweep") %>% 
+  filter(soil_modification != "DiscInv") %>% 
+ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE, na.rm = TRUE) +
+  # stat_regline_equation(
+  #   aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+  #   formula = (y ~ x)
+  # ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(x = "Control yield t/ha", y = "Treatment yield t/ha")+
+  facet_wrap(.~ soil_modification)
+
+
+
+ggsave(rip_spade_no_title,
+       device = "png",
+       filename = "Yield response _All treatments that involves ripping and spading.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+rip_spading_yld_reponse_vs_control <- summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification != "Sweep") %>% 
+  filter(soil_modification != "DiscInv")
+
+write.csv(rip_yld_reponse_vs_control,
+"X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/rip_and_spading_yld_reponse_vs_control.csv",
+row.names = FALSE)
+
+```
+
+
+```{r box and spading ripping only Agro Conf talk, echo=FALSE, message=FALSE, warning=FALSE}
+
+rip_spade_box <- summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification != "Sweep") %>% 
+  filter(soil_modification != "DiscInv") %>% 
+  filter(!is.na(yr_post_amelioration )) %>% 
+  ggplot( mapping = aes(yr_post_amelioration, yield_gain, group = as.factor(yr_post_amelioration))) +
+  theme_bw()+
+  geom_boxplot(outlier.shape = NA,
+               #alpha = 0.2
+               )+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(title = "All treatments that involves ripping\n Control yield - all data = yield gain- no summary\nnote each site, treatment, year and rep is matched to control",
+      x = "Years post ripping", y = "Yield gain t/ha")+
+  facet_wrap(.~ soil_modification)
+
+
+rip_spade_box
+#################### SAME AS ABOVE BUT DIFFERENT FORMATS #############################################
+rip_spade_box_no_title <- summary_control_data_all %>%  
+  filter(soil_modification != "Unmodified") %>% 
+  filter(soil_modification != "Sweep") %>% 
+  filter(soil_modification != "DiscInv") %>% 
+  filter(!is.na(yr_post_amelioration )) %>% 
+ggplot( mapping = aes(yr_post_amelioration, yield_gain, group = as.factor(yr_post_amelioration))) +
+  theme_bw()+
+  geom_boxplot(outlier.shape = NA,
+               #alpha = 0.2
+               )+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
+  theme (axis.title.y = element_text(size = 20), 
+        axis.title.x = element_text(size = 20),
+        axis.text=element_text(size=12))+
+  labs(x = "Years post treatment", y = "Yield gain t/ha")+
+  facet_wrap(.~ soil_modification)
+
+ggsave(rip_spade_box_no_title,
+       device = "png",
+       filename = "Yield gain over years _All treatments that involves ripping and spading.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/agronomy_conf/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+
+```
+
+## Scatter Plots control vs treatments **no amendment** 
+
+
+(with blue background)
+
+
+```{r scatter subset data, echo=FALSE, message=FALSE, warning=FALSE}
+### control vs trials
+
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  
+ggplot( mapping = aes(control_yield, yield)) +
+  geom_point(aes(colour= soil_modification),alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  
+  geom_smooth(method = lm, se = FALSE, colour = "black", size = 0.5) +
+  scale_x_continuous(breaks=seq(0,10,by=0.5))+
+  scale_y_continuous(breaks=seq(0,10,by=0.5))+
+  theme_bw()+
+  labs(title = "Control yield - subset of data no amendment",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+
+
+
+```
+
+
+
+## Scatter Plots control vs treatments facet wrap is years post amelioration **no amendment**
+
+**Comment:** 
+
+- NA related to trial with no metadata
+
+- Year 0 is the years the treatments was made
+
+- Unmodified data is filtered out
+
+
+
+```{r scatter subset data facet yrs post, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  
+ggplot(mapping = aes(control_yield, yield)) +
+  geom_point(aes(colour= soil_modification),alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  #geom_smooth(data = no_amendment, method = lm, se = FALSE, colour = "black", size = 0.5) +
+  labs(title = "Control yield - subset of data no amendment",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+
+```
+
+
+## Modified graphs for Therese 10/6/2022 Rip only
+
+```{r scatter subset data facet yrs post Just Rip, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification == "Rip") %>% 
+  filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+ggplot(mapping = aes(control_yield, yield)) +
+  geom_point(alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  #geom_smooth(data = no_amendment, method = lm, se = FALSE, colour = "black", size = 0.5) +
+  labs(title = "Rip only - Control yield (subset of data with no amendment)",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue1"))
+
+
+
+```
+
+
+```{r histogram subset data facet yrs post Just Rip, echo=FALSE, message=FALSE, warning=FALSE}
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification == "Rip") %>% 
+  #filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+  ggplot(mapping = aes(yield_gain)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue1"))+
+  labs(title = "Yield gains",
+       subtitle = "Subset of data Rip only with no soil modification",
+       x = "yield gain t/ha", y = "frequency of occurrence")
+
+```
+
+
+
+## Modified graphs for Therese 10/6/2022 Spade only
+
+```{r scatter subset data facet yrs post Just spade, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification == "Spade") %>% 
+  filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+ggplot(mapping = aes(control_yield, yield)) +
+  geom_point(alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  #geom_smooth(data = no_amendment, method = lm, se = FALSE, colour = "black", size = 0.5) +
+  labs(title = "Spade only - Control yield (subset of data with no amendment)",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue2"))
+
+```
+
+```{r histogram subset data facet yrs post Just spade, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification == "Spade") %>% 
+  #filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+  ggplot(mapping = aes(yield_gain)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue2"))+
+  labs(title = "Yield gains",
+       subtitle = "Subset of data Spade only with no soil modification",
+       x = "yield gain t/ha", y = "frequency of occurrence")
+
+```
+
+## Scatter Plots control vs treatments facet wrap is sites **no amendment**
+
+
+
+```{r scatter subset data facet site, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+
+
+ggplot(mapping = aes(control_yield, yield)) +
+  geom_point(aes(colour= soil_modification),alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  geom_smooth(data = summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified"), 
+              
+              
+              method = lm, se = FALSE, colour = "black", size = 0.5) +
+  labs(title = "Control yield - subset of data no amendment",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ site_sub)+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+```
+
+
+## Scatter Plots control vs treatments facet wrap is soil modification **no amendment**
+
+
+
+```{r scatter subset data facet modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+
+
+ggplot(mapping = aes(control_yield, yield)) +
+  geom_point(aes(colour= soil_modification),alpha= 0.4) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+  geom_smooth(data = summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified"), 
+              
+              
+              method = lm, se = FALSE, colour = "black", size = 0.5) +
+  
+  
+  
+  labs(title = "Control yield - subset of data no amendment",
+       subtitle = "note each site, treatment, year and rep is matched to control",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ soil_modification)+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+
+
+
+
+```
+
+```{r summary stats subset data facet modification, echo=FALSE, message=FALSE, warning=FALSE}
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  group_by(soil_modification) %>% 
+  summarise(mean_yield_gain = round(mean(yield_gain, na.rm = TRUE),2))
+``` 
+
+
+## Histograms Plots of yield gains
+
+**Comment:** 
+
+- The mean yield gain is 0.54 t/ha for all the treatments and all the years
+
+
+```{r yld gains histograms, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+
+mean_yield_gain <- mean(summary_control_data_all$yield_gain, na.rm = TRUE)
+mean_yield_gain <- round(mean_yield_gain, 2)
+
+ggplot(summary_control_data_all, aes(yield_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  geom_vline(data = summary_control_data_all, aes(xintercept=mean(yield_gain,  na.rm = TRUE)), color="blue", linetype="dashed", size=1)+
+    geom_vline(data = summary_control_data_all, aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  labs(title = "Yield gains - all data - no summary\nNote each site, treatment, year and rep is matched to control\nBlue line is mean yield gain",
+       subtitle = paste0("Mean yield gain ", mean_yield_gain, "t/ha"),
+       x = "yield gain t/ha", y = "frequency of occurrence")
+  
+```
+
+## Histograms Plots of yield gains facet wrap is modification
+
+- Unmodified is filtered out
+
+```{r yld gains histograms facet wraps modification, echo=FALSE, message=FALSE, warning=FALSE}
+  
+
+
+mean_yield_gain_soil_modification <- summary_control_data_all %>% 
+  dplyr::group_by(soil_modification) %>% 
+  dplyr::summarise(mean_yld_gain_mod = round(mean(yield_gain, na.rm = TRUE), 2))
+
+
+
+
+
+
+summary_control_data_all %>% 
+filter(soil_modification != "Unmodified") %>% 
+
+ggplot(aes(x = yield_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), group = 1, colour = 1, fill = "white") +
+  
+  geom_vline(data = mean_yield_gain_soil_modification %>% filter(soil_modification != "Unmodified"), 
+             aes(xintercept=mean_yld_gain_mod),       
+             color="blue", linetype="dashed", size=1)+
+  geom_vline(aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  
+  
+  facet_wrap(.~ soil_modification)+
+  labs(title = "Yield gains - all data - no summary\nNote each site, treatment, year and rep is matched to control
+         \nFacet wrap is modification\nBlue line is mean yield gain",
+       x = "yield gain t/ha", y = "frequency of occurrence")
+
+
+
+```
+
+## Histograms Plots of yield gains **no amendment**
+
+**Comment:** 
+
+- The mean yield gain is 0.54 t/ha for all the treatments and all the years
+
+- This is dropped to 0.39 t/ha when no amendments are included (filtered out the unmodified)
+
+
+```{r yld gains histograms subset, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+mean_yield_gain_no_amendments <- summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  dplyr::summarise(mean_yield_gain_no_amendments = mean(yield_gain, na.rm = TRUE))
+
+mean_yield_gain_no_amendments <-   round(mean_yield_gain_no_amendments, 2)
+
+
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+
+ggplot( aes(yield_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  geom_vline(data = summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) , 
+             aes(xintercept=mean(yield_gain,  na.rm = TRUE)), color="blue", linetype="dashed", size=1)+
+  
+  geom_vline(data = summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) , 
+             aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  
+  labs(title = "Yield gains - subset of data no amendment\nNote each site, treatment, year and rep is matched to control\nBlue line is mean yield gain",
+       subtitle = paste0("Mean yield gain ", mean_yield_gain_no_amendments, "t/ha"),
+       x = "yield gain t/ha", y = "frequency of occurrence")+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+```
+
+## Histograms Plots of yield gains Facet wrap is modification **no amendment**
+
+**Comment:** 
+
+- The effects of soil modification without amendments are displayed here
+
+- Sweep is zero yield gains could this be correct? 
+  I have double checked this uisng the output file and checking it in excel.
+  20 values (4 for each year with sweep and no amendments)
+  we have dont have any missing data
+  the differences (between the treatment yield and control yield) is very small.
+  The avearge are 0
+
+- Sweep only gives yield gains when used with amendments?
+
+- Inclusion Rip with Spading provides the best yield gains
+
+
+
+```{r yld gains histograms subset facet wraps modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Histogram for each modification with mean yield gain plotted
+mean_yield_gain_no_amendments_soil_mod <- summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  dplyr::group_by(soil_modification) %>% 
+  dplyr::summarise(mean_yield_gain_no_amendments = round(mean(yield_gain, na.rm = TRUE),2))
+
+arrange(mean_yield_gain_no_amendments_soil_mod, mean_yield_gain_no_amendments)
+
+
+
+summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+
+
+ggplot( aes(yield_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  
+  geom_vline(data = mean_yield_gain_no_amendments_soil_mod, 
+             aes(xintercept=mean_yield_gain_no_amendments), color="blue", linetype="dashed", size=1)+
+  
+  geom_vline(data = summary_control_data_all %>% 
+  filter(amendment_all ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") , aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  
+  labs(title = "Yield gains - subset of data no amendment",
+       subtitle = "Note each site, treatment, year and rep is matched to control\nBlue line is mean yield gain",
+       x = "yield gain t/ha", y = "frequency of occurrence")+
+  facet_wrap(.~ soil_modification)+
+  theme(plot.background = element_rect(fill = "#BFD5E3"))
+
+
+```
+
+```{r tidy up df 1 work, message=FALSE, warning=FALSE, include=FALSE}
+
+
+rm(
+  mean_yield_gain_soil_modification,
+  mean_yield_gain_no_amendments_soil_mod,
+  mean_yield_gain_no_amendments,
+  scatter_control_vs_trial
+)
+
+```
+
+
+## Scatter Plots control vs treatments yields **with amendment groupings**
+
+
+
+
+```{r scatter amendment, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+summary_control_data_all$amendment_code1 <-
+  factor(summary_control_data_all$amendment_code1,
+         #levels = c("animal", "plant", "fertiliser"))
+         levels = c("animal", "plant", "fertiliser","non organic", "mixed"))
+
+
+summary_control_data_all %>%  
+  filter(amendment_code1 != "none") %>%  
+  filter(amendment_code1 != "non organic") %>% 
+  filter(amendment_code1 != "mixed" ) %>% 
+  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  
+  ggplot( mapping = aes(control_yield, yield)) +
+  geom_point(aes(colour= amendment_code1),alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE, na.rm = TRUE) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Control yield - all data - no summary\nnote each site, treatment, year and rep is matched to control
+    \nFacet wrap is filtered data amendments",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ amendment_code1)
+
+    
+
+
+
+
+
+```
+
+
+## what about when no soil modification was made?
+
+```{r scatter amendment but no soil modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+summary_control_data_all %>%  
+  filter(amendment_code1 != "none") %>%  
+  filter(amendment_code1 != "non organic") %>% 
+  filter(amendment_code1 != "mixed" ) %>% 
+  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  
+  filter(soil_modification == "Unmodified") %>% 
+
+  ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point(aes(colour= amendment_code1),alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Control yield - no summary. BUT no soil modification \nnote each site, treatment, year and rep is matched to control
+      \nFacet wrap is amendment",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ amendment_code1)
+
+ggsave(
+       device = "png",
+       filename = "no soil modification.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/Jackie/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+```
+
+
+## what about when ANY soil modification was made?
+
+```{r scatter amendment but ANY soil modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>%  
+  filter(amendment_code1 != "none") %>%  
+  filter(amendment_code1 != "non organic") %>% 
+  filter(amendment_code1 != "mixed" ) %>% 
+  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  
+  filter(soil_modification != "Unmodified") %>% 
+
+
+
+  ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point(aes(colour= amendment_code1),alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Control yield - no summary. ANY soil modification \nnote each site, treatment, year and rep is matched to control
+      \nFacet wrap is amendment",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ amendment_code1)
+
+
+ggsave(
+       device = "png",
+       filename = "Any amendments soil modification.png",
+       path= "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/Jackie/",
+       width=8.62,
+       height = 6.28,
+       dpi=600
+) 
+
+
+```
+
+## Modified graphs for Therese 10/6/2022 animal only with facet wrap of years since soil modification
+
+
+```{r scatter ANIMAL only amendment but ANY soil modification, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>%  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  
+  filter(soil_modification != "Unmodified") %>% 
+  
+  filter(amendment_code1 == "animal") %>% 
+  filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+  ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point(aes(colour= amendment_code1),alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Animal amendment only. Control yield - no summary. BUT ANY soil modification \nnote each site, treatment, year and rep is matched to control
+      \nFacet wrap is years since amelioration",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue2"))
+
+
+```
+
+
+```{r histogram ANIMAL only amendment but ANY soil modification, echo=FALSE, message=FALSE, warning=FALSE}
+summary_control_data_all %>%  
+  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  
+  filter(soil_modification != "Unmodified") %>% 
+  
+  filter(amendment_code1 == "animal") %>% 
+  #filter(yr_post_amelioration == c(0,1,2,3)) %>% 
+  
+  ggplot(mapping = aes(yield_gain)) +
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  facet_wrap(.~ as.factor(yr_post_amelioration))+
+  theme(plot.background = element_rect(fill = "skyblue2"))+
+  labs(title = "Yield gains for Animal amendment only",
+       subtitle = "Subset of data amendment with ANY soil modification",
+       x = "yield gain t/ha", y = "frequency of occurrence")
+```
+
+## Just Ripping
+
+```{r scatter amendment but ripping only, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary_control_data_all %>%  
+  filter(amendment_code1 != "none") %>%  
+  filter(amendment_code1 != "non organic") %>% 
+  filter(amendment_code1 != "mixed" ) %>% 
+  
+  filter(!is.na(yield)) %>% 
+  filter(!is.na(control_yield)) %>% 
+  filter(soil_modification == "Rip") %>% 
+
+
+  ggplot( mapping = aes(control_yield, yield,)) +
+  geom_point(aes(colour= amendment_code1),alpha= 0.4) +
+  geom_smooth(method = lm, se = FALSE) +
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")),
+    formula = (y ~ x)
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  
+  theme_bw()+
+  theme(legend.position = "none")+
+  labs(title = "Control yield - no summary. Ripping only \nnote each site, treatment, year and rep is matched to control
+      \nFacet wrap is amendment",
+       x = "control yield t/ha", y = "treatment yield t/ha")+
+  facet_wrap(.~ amendment_code1)
+
+
+```
+
+
+
+
+
+
+
+#  Cumulative yields plots   (with dark blue boarders)
+
+## Scatter Plots cumulative yields controls vs cumulative yields treatments
+
+**Comment:** 
+
+
+
+
+Note I have done a check on some of these high values.
+The high cumulative control is for Yenda and this averaged to approx. 5.6 t/ha
+The other high values are from Bute CSIRO with average per yr at 5 t/ha
+
+So this seems OK.
+
+```{r cum yld scatter, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+ 
+  ggplot(data = cum_yld_control, mapping = aes(sum__control_yld, sum_yld, )) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  labs(title = "Cumulative control yield - all data - no summary\nnote that for each site, treatment and rep all yield is summed over all years\nand it is matched to summed control
+      \nBlack line is 1:1, blue is regression line",
+       x = "cumulative control yield t/ha", y = "cumulative treatment yield t/ha")+
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+ theme( plot.background = element_rect(colour = "dark blue", fill=NA, size=5))
+
+
+
+
+```
+
+
+
+## Scatter Plots cumulative yields controls vs cumulative yields treatments with length of trial
+
+**Comment:** 
+
+- filtered out the trials that don't have length of trial in database
+
+- The length of the trial does not always reflect higher yield
+  for example trials that ran for 4 years had low and high cumulative yields
+
+- But for trials only run for 1 or 2 years the cumulative yield was low
+
+- the higher cumulative yield can be reached in about 3 years
+
+
+ 
+
+```{r cum yld scatter with lenghth , echo=FALSE, message=FALSE, warning=FALSE}
+
+#unique(cum_yld_control$`length of trial`)
+
+order_trial_length <- c("1",
+                        "2", 
+                        "3", 
+                        "4" , 
+                        "5" ,
+                        "6",
+                        "7",
+                        "-Inf")
+cum_yld_control$`length of trial` <- factor(cum_yld_control$`length of trial`,
+                                         levels = order_trial_length)
+
+ 
+cum_yld_control %>%
+  filter(`length of trial` != -Inf) %>% 
+  
+  ggplot(mapping = aes(sum__control_yld, sum_yld, colour = `length of trial`)) +
+  geom_point() +
+  geom_abline(intercept = 0,
+              slope = 1,
+              linetype = "dashed") +
+  labs(
+    title = "Cumulative control yield - all data - no summary",
+    subtitle = "note that for each site, treatment and rep yields are summed over multiple years\nand it is matched to summed control yield",
+    x = "cumulative control yield t/ha",
+    y = "cumulative treatment yield t/ha"
+  )+
+  facet_wrap(.~`length of trial`)+
+ theme( plot.background = element_rect(colour = "dark blue", fill=NA, size=5))
+
+
+
+```
+
+
+## Histograms plot cumulative yield gains
+
+
+
+**Comment:** 
+
+ - lots of zero values might be bringing this mean value down? need to check.
+
+ 
+
+```{r cum yld gains histogram 1, echo=FALSE, message=FALSE, warning=FALSE}
+
+# names(cum_yld_control)
+
+mean_cum_yield_gain <- cum_yld_control %>% 
+  dplyr::summarise(mean_cum_yield_gain = mean(sum__yld_gain, na.rm = TRUE))
+
+mean_cum_yield_gain <-   round(mean_cum_yield_gain, 2)
+
+
+cum_yld_control %>% 
+
+ggplot( aes(sum__yld_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), colour = 1, fill = "white") +
+  
+  geom_vline(data = cum_yld_control, 
+             aes(xintercept=mean(sum__yld_gain,  na.rm = TRUE)), color="blue", linetype="dashed", size=1)+
+  
+  geom_vline(data = cum_yld_control, 
+             aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  
+  labs(title = "Cumulative control yield - all data - no summary",
+       subtitle ="note that for each site, treatment and rep yields are summed over multiple years\nand it is matched to summed control yield",
+       caption = paste0("Mean cumulative yield gain ", mean_cum_yield_gain, " t/ha"),
+       x = "cumulative yield gain t/ha", y = "frequency of occurrence")+
+ theme( plot.background = element_rect(colour = "dark blue", fill=NA, size=5))
+
+```
+
+
+
+
+## Histograms plot cumulative yield gains **spading and ripping only**
+
+
+
+**Comment:** 
+
+
+```{r cum yld gains histogram, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Histogram for each modification with mean yield gain plotted
+
+
+#names(cum_yld_control)
+
+mean_cum_yield_gain_soil_mod <- cum_yld_control %>% 
+  dplyr::group_by(soil_modification) %>% 
+  dplyr::summarise(mean_cum_yield_gain_soil_mod = round(mean(sum__yld_gain, na.rm = TRUE),2))
+
+mean_cum_yield_gain_soil_mod_rip <- mean_cum_yield_gain_soil_mod %>% 
+  filter(soil_modification == "Rip")
+
+mean_cum_yield_gain_soil_mod_spade <- mean_cum_yield_gain_soil_mod %>% 
+  filter(soil_modification == "Spade")
+
+
+
+
+cum_yld_control %>% 
+  filter(soil_modification =="Spade"| soil_modification == "Rip") %>% 
+ 
+  
+  ggplot( aes(x = sum__yld_gain)) + 
+  geom_histogram(aes(y = (..count..)/sum(..count..)), group = 1, colour = 1, fill = "white") +
+  
+  geom_vline(data = mean_cum_yield_gain_soil_mod %>% 
+               filter(soil_modification =="Spade"| soil_modification == "Rip"), 
+               aes(xintercept=mean_cum_yield_gain_soil_mod),       
+               color="blue", linetype="dashed", size=1)+
+  
+  geom_vline(data = cum_yld_control%>% 
+               filter(soil_modification =="Spade"| soil_modification == "Rip"), 
+               aes(xintercept=0), color="black", linetype="dashed", size=1)+
+  
+  facet_wrap(.~ soil_modification)+
+  
+  labs(title = "Cumulative control yield",
+       subtitle ="note that for each site, treatment and rep yields are summed over multiple years\nand it is matched to summed control yield",
+       caption = paste0("Mean cumulative yield gain for ripping = ", mean_cum_yield_gain_soil_mod_rip[1,2], " t/ha",
+                        " AND ",
+                        "spading = ", mean_cum_yield_gain_soil_mod_spade[1,2], " t/ha"
+                        ),
+       x = "cumulative yield gain t/ha", y = "frequency of occurrence")+
+ theme( plot.background = element_rect(colour = "dark blue", fill=NA, size=5))
+
+
+```
+
+
+
+
+
+
+## Scatter Plots cumulative yields controls vs cumulative yields treatments **no amendment**
+
+**Comment:** 
+
+ 
+
+
+```{r cum yld gains no amedments scatter, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+
+
+cum_yld_control$soil_modification <- factor(cum_yld_control$soil_modification,
+                                         levels = order_modification)
+
+cum_yld_control %>% 
+  filter(amendment_123 ==  "none"  ) %>% 
+  #filter(soil_modification != "Unmodified") %>% 
+    
+ggplot(mapping = aes(sum__control_yld, sum_yld, )) +
+    geom_point(aes(colour= soil_modification),alpha= 0.4) +
+    geom_abline(intercept = 0, slope = 1, linetype="dashed", size = 0.5)+
+    
+  
+  
+  geom_smooth(data = cum_yld_control %>% filter(amendment_123 ==  "none"  ) , 
+              
+              
+              method = lm, se = FALSE, colour = "black", size = 0.5) +
+      labs(title = "Cumulative yields - subset of data no amendment",
+         subtitle = "note that for each site, treatment and rep all yield is summed over all years\nand it is matched to summed control
+         \nBlack dashed is 1:1, solid line is regression line",
+         x = "cumulative control yield t/ha", y = "cumulative treatment yield t/ha")+
+  geom_abline(intercept = 0, slope = 1, linetype="dashed")+
+  theme(plot.background = element_rect(colour = "dark blue", size=5, fill = "#BFD5E3"))
+     
+
+```
+
+
+
+
+## Histograms cumulative yields gains  **no amendment**
+
+**Comment:** 
+
+- Unmodified not displayed 
+
+- At most sites the unmodified soil with no amendment should be the control
+
+- But at Younghusband we have a trial that falls into this category that is NOT a control
+
+- This is "Unmodified+DeepTill.18_none"
+
+
+ 
+```{r cum yld gains no amedments hist, echo=FALSE, message=FALSE, warning=FALSE}
+ 
+#names(cum_yld_control)
+
+
+mean_cum_yield_gain_soil_mod_no_amed <- cum_yld_control %>% 
+  filter(amendment_123 ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  dplyr::group_by(soil_modification) %>% 
+  dplyr::summarise(mean_cum_yield_gain_soil_mod_no_amed = round(mean(sum__yld_gain, na.rm = TRUE),2))
+
+arrange(mean_cum_yield_gain_soil_mod_no_amed, mean_cum_yield_gain_soil_mod_no_amed)
+
+
+
+cum_yld_control %>% 
+  filter(amendment_123 ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+ 
+    ggplot( aes(x = sum__yld_gain)) + 
+    geom_histogram(aes(y = (..count..)/sum(..count..)), group = 1, colour = 1, fill = "white") +
+    
+    geom_vline(data = mean_cum_yield_gain_soil_mod_no_amed, 
+               aes(xintercept=mean_cum_yield_gain_soil_mod_no_amed),       
+               color="blue", linetype="dashed", size=1)+
+    
+    geom_vline(data = cum_yld_control %>% 
+               filter(amendment_123 ==  "none")%>% 
+               filter(soil_modification != "Unmodified"), 
+               aes(xintercept=0), color="black", linetype="dashed", size=1)+
+    facet_wrap(.~ soil_modification)+
+    labs(title = "Cumulative control yield - subset of data no amendment",
+         subtitle ="note that for each site, treatment and rep yields are summed over multiple years\nand it is matched to summed control yield",
+         x = "cumulative yield gain t/ha", y = "frequency of occurrence")+
+  theme(plot.background = element_rect(colour = "dark blue", size=5, fill = "#BFD5E3"))
+       
+
+
+
+```
+
+
+
+## Histograms cumulative yields gains just the ripping and spading **no amendment**
+
+**Comment:** 
+
+
+
+
+```{r cum yld gains no amedments hist spad and rip, echo=FALSE, message=FALSE, warning=FALSE}
+ 
+
+mean_cum_yield_gain_soil_mod_no_amed <- cum_yld_control %>% 
+  filter(amendment_123 ==  "none"  ) %>% 
+  filter(soil_modification != "Unmodified") %>% 
+  dplyr::group_by(soil_modification) %>% 
+  dplyr::summarise(mean_cum_yield_gain_soil_mod_no_amed = round(mean(sum__yld_gain, na.rm = TRUE),2))
+
+
+
+mean_gains_values_no_amendment_Rip <- mean_cum_yield_gain_soil_mod_no_amed %>% 
+  dplyr::filter(soil_modification == "Rip")
+mean_gains_values_no_amendment_Rip <- round(mean_gains_values_no_amendment_Rip[1,2],2)
+
+mean_gains_values_no_amendment_spade <- mean_cum_yield_gain_soil_mod_no_amed %>% 
+  dplyr::filter(soil_modification == "Spade")
+mean_gains_values_no_amendment_spade <- round(mean_gains_values_no_amendment_spade[1,2],2)
+
+
+
+
+cum_yld_control %>%
+  filter(amendment_123 ==  "none") %>%
+  filter(soil_modification == "Spade" |
+           soil_modification == "Rip") %>%
+  
+  ggplot(aes(x = sum__yld_gain)) +
+  geom_histogram(aes(y = (..count..) / sum(..count..)),
+                 group = 1,
+                 colour = 1,
+                 fill = "white") +
+  
+  geom_vline(
+    data = mean_cum_yield_gain_soil_mod_no_amed %>%
+      filter(soil_modification == "Spade" |
+               soil_modification == "Rip"),
+    aes(xintercept = mean_cum_yield_gain_soil_mod_no_amed),
+    color = "blue",
+    linetype = "dashed",
+    size = 1
+  ) +
+  
+  geom_vline(
+    data = cum_yld_control %>%
+      filter(amendment_123 ==  "none") %>%
+      filter(soil_modification == "Spade" | soil_modification == "Rip"),
+    aes(xintercept = 0),
+    color = "black",
+    linetype = "dashed",
+    size = 1
+  ) +
+  facet_wrap(. ~ soil_modification) +
+  
+  labs(
+    title = "Cumulative yield gains - subset of data no amendment",
+    subtitle = "note that for each site, treatment and rep yields are summed over multiple years\nand it is matched to summed control yield",
+    caption = paste0(
+      "Mean cumulative yield gain, Rip: ",
+      mean_gains_values_no_amendment_Rip,
+      " Spade: ",
+      mean_gains_values_no_amendment_spade
+    ),
+    x = "cumulative yield gain t/ha",
+    y = "frequency of occurrence"
+  )+
+  theme(plot.background = element_rect(colour = "dark blue", size=5, fill = "#BFD5E3"))
+       
+
+
+```
+
+
+
+```{r tidy up3, message=FALSE, warning=FALSE, include=FALSE}
+
+
+rm(mean_cum_yield_gain,
+   mean_cum_yield_gain_soil_mod,
+   mean_cum_yield_gain_soil_mod_no_amed,
+   mean_cum_yield_gain_soil_mod_rip,
+   mean_cum_yield_gain_soil_mod_spade,
+   mean_gains_values_no_amendment_Rip,
+   mean_gains_values_no_amendment_spade)
+
+
+
+write.csv(summary_control_data_all, "X:Therese_Jackie/Sandy_soils/Development_database/for_presentations/temp_summary_control_data_all.csv",
+          row.names = FALSE)
+
+write.csv(cum_yld_control, "X:Therese_Jackie/Sandy_soils/Development_database/for_presentations/temp_cum_control_data_all.csv",
+          row.names = FALSE)
+
+```
+
+
+
+save the output for other work
+
+
+```{r save outputs, message=FALSE, warning=FALSE, include=FALSE}
+
+
+
+#########################################################################################################################################
+### prep the data ####
+#########################################################################################################################################
+soil_constraints <- read.csv("X:/Therese_Jackie/Sandy_soils/Development_database/completeDB/sites_merged_all_messy.csv")
+#names(soil_constraints)
+
+#keep a subset of data
+soil_constraints <- soil_constraints %>% 
+  dplyr::select(site, Repellence, Acidity, Physical, Nutrient, other )
+
+#keep a data for sites only - remove the duplicates
+soil_constraints <- soil_constraints %>%
+  dplyr::distinct(site, .keep_all = TRUE)
+
+
+### join this to the summary_control_data_all data
+
+summary_control_data_all_soil_constraints <- left_join(summary_control_data_all, soil_constraints)
+
+
+write.csv(summary_control_data_all_soil_constraints, paste0( "X:/Therese_Jackie/Sandy_soils/Development_database/for_presentations/Jackie/","summary_control_data_all",Sys.Date(),".csv"),
+          row.names = FALSE)
+
+```
