@@ -227,10 +227,10 @@ count(check_df) #8 excluding the unmodified
 
 
 
-df1 <- df %>% select(Descriptors, site_display)
-df1 <- df1 %>% distinct(Descriptors)
+# df1 <- df %>% select(Descriptors, site_display)
+# df1 <- df1 %>% distinct(Descriptors)
 
-df1 <- df1 %>% 
+df <- df %>% 
   mutate(soil_amendments = case_when(
     Descriptors == "Spade.30_Cereal.incorp_30" ~        "Cl",
     Descriptors == "Rip.30_Cl.band_30" ~                "Cl",
@@ -362,7 +362,7 @@ df1 <- df1 %>%
 
 
 
-df1<- df1 %>% 
+df<- df %>% 
   mutate(amendments_grouping = case_when(
     soil_amendments ==  "none" ~ "none",
     
@@ -400,5 +400,7 @@ df1<- df1 %>%
     
     TRUE ~ "check"
     
-    
   ))
+
+
+write_csv(df,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints.csv" )
