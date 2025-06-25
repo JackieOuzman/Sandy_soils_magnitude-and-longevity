@@ -403,4 +403,59 @@ df<- df %>%
   ))
 
 
+df <- df %>% 
+  mutate(crop = case_when(
+    crop == "Lentil" ~ "Lentils",
+    crop == "lentil" ~ "Lentils",
+    crop == "lentils" ~ "Lentils",
+    crop == "Lentils" ~ "Lentils",
+    crop == "Lupin" ~ "Lupins",
+    crop == "Lupins" ~ "Lupins",
+    crop == "lupin" ~ "Lupins",
+    crop == "lupins" ~ "Lupins",
+    crop == "Peas" ~ "Peas",
+    crop == "barley" ~ "Barley",
+    crop == "Barley" ~ "Barley",
+    crop == "beans" ~ "Beans",
+    crop == "canola" ~ "Canola",
+    crop == "Canola" ~ "Canola",
+    crop == "triticale" ~ "Triticale",
+    crop == "vetch" ~ "Vetch",
+    crop == "Vetch" ~ "Vetch",
+    crop == "wheat" ~ "Wheat",
+    crop == "Wheat" ~ "Wheat",
+  ))
+
+
+
+check <- df %>% distinct(crop) 
+
+check
+names(df)
+
+### class into tillage type
+df <- df %>% 
+  mutate(tillage_class = case_when(
+    soil_modification == "IncRip" ~          "Ripping",
+    soil_modification == "IncRip+Spade" ~    "Ripping_Mixing",
+    soil_modification == "Rip"       ~       "Ripping",
+    soil_modification == "Rip+Spade" ~       "Ripping_Mixing",
+    soil_modification == "Spade" ~            "Mixing",
+    soil_modification == "Sweep" ~            "Other",
+    soil_modification == "DiscInv" ~          "Other",
+    soil_modification == "Pre" ~              "Other",
+    soil_modification == "Unmodified" ~        "Unmodified",
+    .default = "check"
+    
+  ))
+
+check <- df %>% distinct(soil_modification, .keep_all = TRUE) %>% select(soil_modification, tillage_class)
+check
+
+
+df <- df %>% 
+  mutate(yield_gain = yield-control_yield,
+         relative_yld_change = ((yield- control_yield)/control_yield)*100)
+  
+
 write_csv(df,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints.csv" )
