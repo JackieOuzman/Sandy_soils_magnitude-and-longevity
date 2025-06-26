@@ -1,0 +1,271 @@
+---
+title: "Step 3 Yield potential from decile year"
+author: "Jackie"
+date: "2025-03-31"
+output: html_document
+---
+
+```{r load_libary, include=FALSE}
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(stringr)
+library(DT)
+```
+
+# Workflow for analysing climate data creating decile tables and forecasting yields.
+* Series of R markdown. Best to run these in order, but once you have historical yields step 2 and 3 they don’t need to be repeated to get a yield forecast.  
+**Step 1** 
+ *	Download patch point met file, tidy up and saved to directory. User to specify the site number.  
+**Step 2** 
+*	User defined site, and ‘season’.
+*	Create plot sum of rain, per year, per season for site selected
+*	Create historical files 1. Decile table for GS. 2. Decile table summer season.
+*	File for each year with sum of rain per year and season type.  
+**Step 3**
+*	User defined site creates yield potential for decile years, using baseline and frontier approach.
+*	Creates plot  
+**Step 4**
+*	User defined site creates yield forecast for decile years, using baseline and frontier approach for defined dates
+*	Creates plot  
+
+## Choose what site you want to create yield potential for.
+
+
+```{r list of sites, echo=FALSE}
+list_of_sites <- data.frame(
+    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", "Balaklava", "Annuello"), ### add more here when you have the info
+    Number = c("25006", "18113", "25003", "76065", "21012", "21002", "76000"),
+    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86", "-34.14", "-34.85"),
+    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", "138.42", "142.78"),
+    State = c("SA", "SA", "SA", "VIC","SA", "SA", "VIC")
+    )
+
+DT::datatable(list_of_sites)
+
+
+ 
+```
+
+## List of historical decile tables created in step 2
+* Looking in this folder.
+* If it is in another location change the bellow code chuck.(file_path_input_data)
+* "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Decile_tables"
+
+```{r list of sites with decile tables, echo=FALSE}
+
+ file_path_input_data<-file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Decile_tables")
+
+list_of_file <- list.files(path = file_path_input_data, pattern = ".csv")
+list_of_file <- as.data.frame(list_of_file)
+DT::datatable(list_of_file)
+ 
+```
+## Select the site number
+* create a new variable in the below code chuck that will be used for the analysis
+* Shiny application would be nice but then I have problem saving the output.
+
+```{r sites_selction, echo=FALSE}
+ site_selected <- "25006"
+print(site_selected)
+```
+
+## Download the **Growing season** decile file 
+```{r sites_selction_download GS file, echo=FALSE, warning=FALSE}
+  
+
+df_GS <- read.csv(
+    paste0(
+    file_path_input_data,
+         "/GS_decile_table_df_",
+         site_selected, 
+         ".csv") )
+df_GS <- df_GS %>% mutate(across(where(is.numeric), round, 2))
+
+DT::datatable(df_GS)
+
+```
+
+## Download the **Summer** decile file 
+```{r sites_selction_download summer file, echo=FALSE, warning=FALSE}
+  df_summer <- read.csv(
+    paste0(
+    file_path_input_data,
+         "/Summer_decile_table_df_",
+         site_selected, 
+         ".csv") )
+df_summer <- df_summer %>% mutate(across(where(is.numeric), round, 2))
+
+DT::datatable(df_summer)
+
+```
+
+
+## Decile 5 Summer start water baseline and frontier
+* This is calculated from the summer decile tables for the site nominated
+* Baseline Estimated Starting water is 25% of summer rainfall
+* Frontier Estimated Starting water is 30% of summer rainfall
+
+```{r D5_Starting water Baseline and Frontier, echo=FALSE}
+
+## add a clm with this Estimated Starting water for all deciles
+df_summer <- df_summer %>%
+  mutate(Baseline_Estimated_Starting_water = summer_decile_max_rain * 0.25, # Estimated Starting water = (25% of Summer Rainfall)
+         Frontier_Estimated_Starting_water  = summer_decile_max_rain * 0.30) # Estimated Starting water = (30% of Summer Rainfall)
+
+
+## create 2 new variable for decile 5 Baseline Estimated Starting water and Frontier Estimated Starting water
+
+D5_Baseline_Est_Start_water <- df_summer %>% 
+  filter(summer_deciles_names =="decile_5" ) %>% 
+  select(Baseline_Estimated_Starting_water)
+
+D5_Baseline_Est_Start_water <-   D5_Baseline_Est_Start_water$Baseline_Estimated_Starting_water
+
+
+D5_Frontier_Est_Start_water <- df_summer %>% 
+  filter(summer_deciles_names =="decile_5" ) %>% 
+  select(Frontier_Estimated_Starting_water)
+
+D5_Frontier_Est_Start_water <- D5_Frontier_Est_Start_water$Frontier_Estimated_Starting_water
+
+
+
+
+
+print(paste0("D5_Baseline_Est_Start_water = ", D5_Baseline_Est_Start_water))
+print(paste0("D5_Frontier_Est_Start_water = ", D5_Frontier_Est_Start_water)) 
+```
+
+## Calulate a number of variables:
+(and appending to the GS decile table)
+
+* **Baseline**
+* Estimated Evaporation baseline = 40% of GS rainfall
+* Yield Potential baseline = ((decile rainfall + Estimated Starting water) - Estimated Evaporation) * 20
+* Economic yield potential baseline = 80% of Yield potential 
+
+
+* **Frontier**
+* Estimated Evaporation Frontier = using a regression equation.  0.18 * GS rainfall + 15.
+* Yield Potential Frontier = ((decile rainfall + Estimated Starting water) - Estimated Evaporation) * 26
+* Economic yield potential Frontier = 80% of Yield potential 
+
+
+
+```{r append cals Baseline and Frontier, echo=FALSE}
+df_GS <- df_GS %>%
+  mutate(
+    Cal_Est_Evaporation_base = (GS_decile_max_rain *0.4), # (40% of GSR)
+      
+    Cal_YP_base = ((GS_decile_max_rain +
+                       D5_Baseline_Est_Start_water)-
+                       (Cal_Est_Evaporation_base))*20 ,
+     Cal_EYP_base = (Cal_YP_base*0.8), # 80% of Yield potential 
+
+    Cal_Est_Evaporation_Front = (0.18*GS_decile_max_rain+15), # using regression equation 
+      Cal_YP_Front = ((GS_decile_max_rain+
+                         D5_Frontier_Est_Start_water)-
+                         (Cal_Est_Evaporation_Front))*26,
+     Cal_EYP_Front = Cal_YP_Front*0.8,  #80% of Yield potential ,
+    
+    Cal_EYP_Future = Cal_YP_Front
+    )
+
+df_GS <- df_GS %>% mutate(across(where(is.numeric), round, 2))
+
+ 
+
+display_df_GS <-  df_GS %>% dplyr::select(
+  GS_deciles_names ,
+  Cal_Est_Evaporation_base,
+  Cal_YP_base,
+  Cal_EYP_base,
+  Cal_Est_Evaporation_Front,
+  Cal_YP_Front,
+  Cal_EYP_Front,
+  Cal_EYP_Future
+)
+
+DT::datatable(display_df_GS)
+ 
+
+```
+# Create plots of results
+
+```{r pre plot work, echo=FALSE}
+# make df long to help with plotting different approaches in calculating YP
+df_GS_long <- df_GS %>% 
+  pivot_longer(
+    cols = starts_with("Cal"),
+    names_to = "Cal_type",
+    values_to = "value",
+    values_drop_na = TRUE
+  )
+
+################################################################################
+# order the deciles to help with plotting
+
+df_GS_long$GS_deciles_names <- factor(df_GS_long$GS_deciles_names , ordered = TRUE, 
+                                levels = c("decile_1", "decile_2", "decile_3", "decile_4",
+                                           "decile_5", "decile_6", "decile_7", "decile_8",
+                                           "decile_9","decile_10" ))
+
+
+## assign names to match Kenton names in his excel sheets
+df_GS_long <- df_GS_long %>% 
+  mutate(
+    Cal_type = case_when(
+      Cal_type ==  "Cal_EYP_base" ~  "Baseline Practice",
+      Cal_type ==  "Cal_EYP_Front" ~   "New Frontier",
+      Cal_type ==  "Cal_EYP_Future" ~  "Future Long term",
+      
+      .default = Cal_type
+    ))
+
+
+```
+
+```{r plot work, echo=FALSE}
+
+plot1 <-df_GS_long %>% 
+  filter(Cal_type =="Baseline Practice" | Cal_type =="New Frontier" | Cal_type == "New Frontier Long term"| 
+           Cal_type == "Future Long term") %>% 
+  
+  ggplot(aes(x = GS_deciles_names , y = value, group=Cal_type) )+
+  geom_point(aes(color=Cal_type))+
+  geom_line(aes(color=Cal_type))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(title = "YP based on historical  decile years",
+       subtitle = paste0("Station name: ", distinct(df_GS, Station_name ), 
+                         " - ", distinct(df_GS, Station_number )),
+       caption = paste0("Years included : ", distinct(df_GS,Years_included),
+                        ". GS period:",  distinct(df_GS,GS_period)),
+       y = "Yield kg/ha",
+       x = "",
+       colour = "" #removed the legend title
+  )
+plot1
+```
+
+# Save file
+* Saving to this folder.
+* If it is in another location change the bellow code chuck.(file_path_input_data)
+* "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Decile_tables"
+
+
+
+```{r save files, echo=FALSE}
+path_saved_files <- file_path_input_data<-file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Decile_tables")
+
+ggsave(plot = plot1,
+       filename = paste0(path_saved_files,"/Plot_YP based on GS decile years",site_selected ,".png" ), 
+       width = 20, height = 12, units = "cm")
+
+
+write_csv(df_GS_long, 
+          file = paste0(path_saved_files,"/GS_decile_table_withYP_cals_long",site_selected ,".csv"))
+```
