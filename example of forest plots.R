@@ -7,8 +7,8 @@ library(gridExtra)
 library(ggplot2)
 
 library(dplyr)
-library(rcompanion)
-install.packages(rcompanion)
+# library(rcompanion)
+# install.packages(rcompanion)
 
 ## Example data frame
 dat <- data.frame(

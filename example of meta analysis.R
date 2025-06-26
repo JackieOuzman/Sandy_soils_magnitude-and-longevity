@@ -1,4 +1,15 @@
+#install.packages("esc")
+#devtools::install_github("MathiasHarrer/dmetar")
+#install.packages("dmetar") #not working
+#install.packages("meta")
+#install.packages("PerformanceAnalytics")
 library(tidyverse)
+library(esc)
+library(dmetar)
+library(meta)
+library(metafor)
+library(numDeriv)
+library(PerformanceAnalytics)
 
 #https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/forest.html
 
@@ -82,8 +93,7 @@ se
 
 # 3.3.1.2 Between-Group Standardized Mean Difference --------------------------
 # Load esc package
-install.packages("esc")
-library(esc)
+
 
 # Define the data we need to calculate SMD/d
 # This is just some example data that we made up
@@ -188,14 +198,7 @@ se_r_xy_c
 # 4.1 The Fixed-Effect and Random-Effects Model ---
 # 4.1.1 The Fixed-Effect Model
 
-# Load dmetar, esc and tidyverse (for pipe)
-#devtools::install_github("MathiasHarrer/dmetar")
-#install.packages("dmetar") #not working
-library(dmetar)
-library(esc)
-library(tidyverse)
-#install.packages("meta")
-library(meta)
+
 
 # Load data set from dmetar
 data(SuicidePrevention)
@@ -325,3 +328,101 @@ meta::forest(m.mean,
              leftlabs = c("Author", "g", "SE"))
 
 dev.off()
+
+
+# 8.2 Meta-Regression in R -----
+glimpse(ThirdWave)
+
+ThirdWave_with_yr <- ThirdWave %>% mutate(year = c(2014, 1998, 2010, 1999, 2005, 2014, 
+                                                   2019, 2010, 1982, 2020, 1978, 2001,
+                                                   2018, 2002, 2009, 2011, 2011, 2013))
+View(ThirdWave_with_yr)
+m.gen <- metagen(TE = TE,
+                 seTE = seTE,
+                 studlab = Author,
+                 data = ThirdWave_with_yr,
+                 sm = "SMD",
+                 fixed = FALSE,
+                 random = TRUE,
+                 method.tau = "REML",
+                 method.random.ci = "HK",
+                 title = "Third Wave Psychotherapies")
+summary(m.gen)
+
+# year <- c(2014, 1998, 2010, 1999, 2005, 2014, 
+#           2019, 2010, 1982, 2020, 1978, 2001,
+#           2018, 2002, 2009, 2011, 2011, 2013)
+m.gen.reg <- metareg(m.gen, ~year)
+m.gen.reg
+bubble(m.gen.reg, studlab = TRUE)
+metareg(m.gen, year) # this is the same as above.
+# can also try different subgroups in the meta - regression
+metareg(m.gen, RiskOfBias)
+# so the take away here is that 
+# In the output, we see that the value of R2∗, with 15.66%, 
+# is considerably smaller than the one of year. 
+# Consistent with our previous results, 
+# we see that the risk of bias variable is not a significant effect size predictor
+# (p  = 0.13).
+#In the year analysis it was 77%  p-val = 0.0075
+# In the last line, we see the value of R2∗, 
+# which in our example is 77%. This means that 77% of the difference 
+# in true effect sizes can be explained by the publication year, 
+# a value that is quite substantial. 
+# We see that this test p-val = 0.0075 is also significant
+# This means that our predictor, the publication year, 
+# does indeed influence the studies’ effect size
+
+
+
+# 8.3.3 Multiple Meta-Regression in R ----
+data(MVRegressionData)
+glimpse(MVRegressionData)
+
+# Test for corrlation
+MVRegressionData[,c("reputation", "quality", "pubyear")] %>% cor()
+MVRegressionData[,c("reputation", "quality", "pubyear")] %>% 
+  chart.Correlation()
+
+# run regression
+m.qual <- rma(yi = yi,
+              sei = sei,
+              data = MVRegressionData,
+              method = "ML",
+              mods = ~ quality,
+              test = "knha")
+
+m.qual
+
+m.qual.rep <- rma(yi = yi, 
+                  sei = sei, 
+                  data = MVRegressionData, 
+                  method = "ML", 
+                  mods = ~ quality + reputation, 
+                  test = "knha")
+
+m.qual.rep
+anova(m.qual, m.qual.rep)
+
+# Add factor labels to 'continent'
+# 0 = Europe
+# 1 = North America
+levels(MVRegressionData$continent) = c("Europe", "North America")
+
+# Fit the meta-regression model
+m.qual.rep.int <- rma(yi = yi, 
+                      sei = sei, 
+                      data = MVRegressionData, 
+                      method = "REML", 
+                      mods = ~ pubyear * continent, 
+                      test = "knha")
+
+m.qual.rep.int
+
+
+multimodel.inference(TE = "yi", 
+                     seTE = "sei",
+                     data = MVRegressionData,
+                     predictors = c("pubyear", "quality", 
+                                    "reputation", "continent"),
+                     interaction = FALSE)

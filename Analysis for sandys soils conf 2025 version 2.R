@@ -436,23 +436,50 @@ names(df)
 ### class into tillage type
 df <- df %>% 
   mutate(tillage_class = case_when(
+    soil_modification == "DiscInv" ~          "Ripping_Mixing",
     soil_modification == "IncRip" ~          "Ripping",
     soil_modification == "IncRip+Spade" ~    "Ripping_Mixing",
+    soil_modification == "Pre" ~              "Ripping",
     soil_modification == "Rip"       ~       "Ripping",
     soil_modification == "Rip+Spade" ~       "Ripping_Mixing",
     soil_modification == "Spade" ~            "Mixing",
-    soil_modification == "Sweep" ~            "Other",
-    soil_modification == "DiscInv" ~          "Other",
-    soil_modification == "Pre" ~              "Other",
+    soil_modification == "Sweep" ~            "Ripping",
     soil_modification == "Unmodified" ~        "Unmodified",
-    .default = "check"
+      .default = "check"
     
   ))
 
 check <- df %>% distinct(soil_modification, .keep_all = TRUE) %>% select(soil_modification, tillage_class)
 check
+str(df)
+amendments_grouping_check <- df %>% distinct(amendments_grouping, .keep_all = TRUE) %>% 
+  select(amendments_grouping, Descriptors)
+amendments_grouping_check
+
+df <- df %>% 
+  mutate(amendments_no_amend = case_when(
+    amendments_grouping == "animal" ~ "amendment",
+    amendments_grouping == "non organic" ~ "amendment",
+    amendments_grouping == "mixed" ~ "amendment",
+    amendments_grouping == "fertiliser" ~ "amendment",
+    amendments_grouping == "plant" ~ "amendment",
+    amendments_grouping == "none" ~ "no_amendment",
+    .default = "check"
+    ))
 
 
+df <- df %>% 
+  mutate(tillage_amendments_class = paste0(tillage_class, "_", amendments_no_amend))
+
+amendments_grouping_check <- df %>% distinct(tillage_amendments_class, .keep_all = TRUE) %>% 
+  select(tillage_amendments_class, tillage_class, amendments_no_amend )
+amendments_grouping_check
+
+
+
+
+
+### This needs to be better. Not sure why its not working.
 df <- df %>% 
   mutate(yield_gain = yield-control_yield,
          relative_yld_change = ((yield- control_yield)/control_yield)*100)
