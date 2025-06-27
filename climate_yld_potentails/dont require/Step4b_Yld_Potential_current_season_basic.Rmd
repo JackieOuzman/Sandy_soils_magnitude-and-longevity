@@ -1,0 +1,583 @@
+---
+title: "Step 4 Yield potential for current season. Dynamic to suit availble dates in GS"
+author: "Jackie"
+date: "2025-03-31"
+output: html_document
+---
+
+```{r load_libary, include=FALSE}
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(stringr)
+library(DT)
+```
+
+# Workflow for analysing climate data creating decile tables and forecasting yields.
+* Series of R markdown. Best to run these in order, but once you have historical yields step 2 and 3 they don’t need to be repeated to get a yield forecast.  
+**Step 1** 
+ *	Download patch point met file, tidy up and saved to directory. User to specify the site number.  
+**Step 2** 
+*	User defined site, and ‘season’.
+*	Create plot sum of rain, per year, per season for site selected
+*	Create historical files 1. Decile table for GS. 2. Decile table summer season.
+*	File for each year with sum of rain per year and season type.  
+**Step 3**
+*	User defined site creates yield potential for decile years, using baseline and frontier approach.
+*	Creates plot  
+**Step 4**
+*	User defined site creates yield forecast for decile years, using baseline and frontier approach for defined dates
+*	Creates plot  
+
+
+## Choose what site you want to create forecast yield for.
+
+
+```{r list of sites, echo=FALSE}
+list_of_sites <- data.frame(
+    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", 
+             "Balaklava", "Annuello", "YEELANNA", "KIMBA", "NARACOORTE",
+             "RED_CLIFFS"), ### add more here when you have the info
+    Number = c("25006", "18113", "25003", "76065", "21012", 
+               "21002", "76000", "018099", "018040", "026015",
+               "076052"),
+    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86",
+                 "-34.14", "-34.85", "-34.132", "11", "11",
+                 "11"),
+    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", 
+                  "138.42", "142.78", "135.730", "11", "11",
+                  "11"),
+    State = c("SA", "SA", "SA", "VIC","SA", 
+              "SA", "VIC", "SA", "SA", "SA",
+              "VIC")
+)
+
+DT::datatable(list_of_sites)
+
+
+ 
+```
+
+## List of historical decile tables created in step 2
+* Looking in this folder.
+* If it is in another location change the bellow code chuck.(file_path_input_data)
+* "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Decile_tables"
+
+```{r list of sites with decile tables, echo=FALSE}
+ file_path_input_data<-file.path("N:","sandy soils conference", "data",  "climate_data", "Decile_tables")
+ 
+
+list_of_file <- list.files(path = file_path_input_data, pattern = ".csv")
+list_of_file <- as.data.frame(list_of_file)
+#DT::datatable(list_of_file)
+ 
+```
+## Select the **site number**
+* create a new variable in the below code chuck that will be used for the analysis
+* Shiny application would be nice but then I have problem saving the output.
+
+```{r sites_selction, echo=FALSE}
+ site_selected <- "018099"
+print(site_selected)
+```
+## Select the **GS year**
+
+* what year do you want to look at for **the growing season ?**
+
+```{r define year, echo=FALSE}
+
+### summer dates after GS
+year <- "2014"
+print(paste0("Year = ", year))
+```
+
+
+## Download the **daily met** file to calulate this years inputs
+* 1. how much rain since the start of the GS
+*    use the daily met file to calculate the rain from start of growing season to defined date.
+
+* 2. how much rain over 'summer month"
+*    use the daily met file to calculate the rain from 1/11 to 31/3. Note its is the Nov and Dec in the year prior to the GS
+
+
+```{r daily met file, echo=FALSE, warning=FALSE}
+  daily_file <- read.csv(
+    paste0(
+    file_path_input_data,
+         "/Daily_met_file_season types_",
+         site_selected, 
+         ".csv") )
+daily_file <- daily_file %>% mutate(across(where(is.numeric), round, 2))
+
+#str(daily_file)
+```
+## 1. how much rain since the start of the GS.
+
+* If the daily met file won't allow you to choose so many dates (ie the dates have not happened yet for that year).
+* The script looks for dates that exist in your selected year and the range of predefined GS dates and only keeps the existing dates for the analysis.
+* Make the dates the same for the subsequent defined date. 
+* The report is expecting 8 dates * You will need to **change the dates in the below code chunk** (if you don't want these).
+
+* Notes that these dates will need to match what was used to create the historical GS decile tables with a fixed date.
+
+
+```{r sites_selction_download GS file, echo=FALSE, warning=FALSE}
+
+start <- paste0(year, "-04-01")
+
+defined_date1 <- paste0(year, "-04-01")
+defined_date2 <- paste0(year, "-05-01")
+defined_date3 <- paste0(year, "-06-01")
+defined_date4 <- paste0(year, "-06-15")
+defined_date5 <- paste0(year, "-07-01")
+defined_date6 <- paste0(year, "-07-15")
+defined_date7 <- paste0(year, "-08-01")
+defined_date8 <- paste0(year, "-09-01")
+defined_date9 <- paste0(year, "-10-01")
+defined_date10 <- paste0(year, "-10-15")
+
+
+### Filter dataset based on years 
+daily_file1 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date1)))
+
+daily_file2 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date2)))
+daily_file3 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date3)))
+daily_file4 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date4)))
+daily_file5 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date5)))
+daily_file6 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date6)))
+daily_file7 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date7)))
+daily_file8 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date8)))
+daily_file9 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date9)))
+daily_file10 <- daily_file %>% filter(between(Date, as.Date(start), as.Date(defined_date10)))
+
+
+daily_file_sum_rain1 <- daily_file1 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date1, date = "date1")
+daily_file_sum_rain2 <- daily_file2 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date2, date = "date2")
+daily_file_sum_rain3 <- daily_file3 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date3, date = "date3")
+daily_file_sum_rain4 <- daily_file4 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date4, date = "date4")
+daily_file_sum_rain5 <- daily_file5 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date5, date = "date5")
+daily_file_sum_rain6 <- daily_file6 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date6, date = "date6")
+daily_file_sum_rain7 <- daily_file7 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date7, date = "date7")
+ daily_file_sum_rain8 <- daily_file8 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date8, date = "date8")
+  daily_file_sum_rain9 <- daily_file9 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date9, date = "date9")
+   daily_file_sum_rain10 <- daily_file10 %>% summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% mutate(startGS =start, Defined_date =defined_date10, date = "date10")
+ 
+daily_file_sum_rain_all_GS <- rbind(daily_file_sum_rain1,
+                                 daily_file_sum_rain2,
+                                 daily_file_sum_rain3,
+                                 daily_file_sum_rain4,
+                                 daily_file_sum_rain5,
+                                 daily_file_sum_rain6,
+                                 daily_file_sum_rain7,
+                                 daily_file_sum_rain8,
+                                 daily_file_sum_rain9,
+                                 daily_file_sum_rain10
+                                 )
+
+rm(daily_file_sum_rain1,
+   daily_file_sum_rain2,
+   daily_file_sum_rain3,
+   daily_file_sum_rain4,
+   daily_file_sum_rain5,
+   daily_file_sum_rain6,
+   daily_file_sum_rain7,
+   daily_file_sum_rain8,
+   daily_file_sum_rain9,
+   daily_file_sum_rain10,
+   daily_file1,
+   daily_file2,
+   daily_file3,
+   daily_file4,
+   daily_file5,
+   daily_file6,
+   daily_file7,
+   daily_file8,
+   daily_file9,
+   daily_file10)
+### Summary of rain
+
+
+
+```
+## 1a. what GS dates exist in the downloaded met file .
+```{r check dates sites_selction_download GS file, echo=FALSE, warning=FALSE}
+daily_file_sum_rain_all_GS <- daily_file_sum_rain_all_GS %>% mutate(across(where(is.numeric), round, 2))
+daily_file_sum_rain_all_GS <- daily_file_sum_rain_all_GS %>%  select(date, startGS, Defined_date, sum_rain)
+
+
+max_date <- unique(max(daily_file$Date))
+daily_file_sum_rain_all_GS <- daily_file_sum_rain_all_GS %>% mutate(max_date_climate_date = unique(max(daily_file$Date)))
+
+### is the data range valid?
+daily_file_sum_rain_all_GS <- daily_file_sum_rain_all_GS %>% 
+  mutate(max_date_climate_date = unique(max(daily_file$Date)),
+           date_exists_in_met_file = 
+           case_when(
+             Defined_date < max_date ~ "date_exists",
+             .default = "date_outside_range")
+           )                                   
+
+
+DT::datatable(daily_file_sum_rain_all_GS)
+
+```
+
+## 2. How much rain over "summer month"
+* use the daily met file to calculate the rain from 1/11 to 31/3.
+* note the year for this analysis is specified in below code chuck, if you want a different year change it here.
+
+### 2a. How to defined the start and end of summer months and year
+* The default is 1/11 (1st Nov) to 31/03 (31th March)
+* If you want to change this modified the below code chunk.
+
+```{r define start and end of summer months, echo=FALSE}
+
+
+#before GS
+start_of_summer_before_GS <- paste0(year,"-01-01")
+end_of_summer_before_GS <- paste0(year,"-03-31") #?should this be 1/4
+
+#after GS 
+#after GS this should be the year before..
+start_of_summer_after_GS <- paste0(as.numeric(year)-1,"-11-01")
+end_of_summer_after_GS <- paste0(as.numeric(year)-1,"-12-31")
+
+
+print(paste0("start of summer months = ", start_of_summer_after_GS, " end of summer months = ",end_of_summer_before_GS ))
+```
+
+
+```{r cal the summer rainfall, echo=FALSE}
+
+### Filter dataset based on summer months 
+#before GS
+daily_file1_summer <- daily_file %>% filter(between(Date, as.Date(start_of_summer_before_GS), as.Date(end_of_summer_before_GS)))
+#after GS
+daily_file2_summer <- daily_file %>% filter(between(Date, as.Date(start_of_summer_after_GS), as.Date(end_of_summer_after_GS)))
+
+daily_file_summer <- rbind(daily_file1_summer, daily_file2_summer)
+rm(daily_file1_summer, daily_file2_summer)
+
+daily_file_summer_sum_rain <- daily_file_summer %>% 
+  summarise(sum_rain = sum(Rain, na.rm = TRUE)) %>% 
+  mutate(start_summer =start_of_summer_after_GS, 
+         end_summer =end_of_summer_before_GS)
+
+
+
+### Summary of summer rain
+daily_file_summer_sum_rain <- daily_file_summer_sum_rain %>% select(
+  start_summer, end_summer, sum_rain)
+DT::datatable(daily_file_summer_sum_rain)
+
+```
+
+
+## Download the **Growing season** decile file that has the fixed dates for start of season
+
+* Note these dates should be compatible with the dates used to summaries this years GS.
+* these dates will be modified to match what dates 'date_exists' in the current year 
+
+## Add some of **this** years data to the histriocal GS rainfall data 
+
+### * 1. This years GS rainfall for number of different dates
+
+### * 2. This years summer rainfall
+
+```{r sites_selction_download gs file, echo=FALSE, warning=FALSE}
+#GS_decile_table_df_25006 
+
+ df_gs <- read.csv(
+  paste0(
+    file_path_input_data,
+    "/GS_decile_table_df_fixed_dates_",
+   #  "/GS_decile_table_df_",
+    site_selected, 
+    ".csv") )
+df_gs <- df_gs %>% mutate(across(where(is.numeric), round, 2))
+
+
+
+
+### make a new clm called Defined date from the date range clm defined_date.
+
+#distinct(df_gs,defined_date )
+#distinct(daily_file_sum_rain_all_GS,Defined_date )
+
+df_gs <- df_gs %>% 
+  mutate(Defined_date_common_year = case_when(
+    defined_date == "from 1-4to 14-10" ~ paste0(year, "-04-01"),
+    defined_date == "from 1-5to 14-10" ~ paste0(year, "-05-01"),
+    defined_date == "from 1-6to 14-10" ~ paste0(year, "-06-01"),
+    defined_date == "from 15-6to 14-10" ~ paste0(year, "-06-15"),
+    defined_date == "from 1-7to 14-10" ~ paste0(year, "-07-01"),
+    defined_date == "from 15-7to 14-10" ~ paste0(year, "-07-15"),
+    defined_date == "from 1-8to 14-10" ~ paste0(year, "-08-01"),
+    defined_date == "from 1-9to 14-10" ~ paste0(year, "-09-01"),
+    defined_date == "from 1-10to 14-10" ~ paste0(year, "-10-01")
+  ))
+
+## join the decile GS historical data 
+#names(daily_file_sum_rain_all_GS)
+df_gs <- left_join(df_gs , daily_file_sum_rain_all_GS,  by = join_by(Defined_date_common_year == Defined_date))
+
+## keep only the dates that exists
+df_gs <- df_gs %>% filter(date_exists_in_met_file == "date_exists")
+
+# DT::datatable(distinct(df_gs, defined_date), caption = "List of dates used to define the start of GS, season end is the same",)
+# 
+ DT::datatable(df_gs)
+
+```
+
+
+
+```{r add how much GS rain this year, echo=FALSE, warning=FALSE}
+
+### add this years summer rainfall
+df_gs <- df_gs %>% 
+  mutate(summer_rain_sum = daily_file_summer_sum_rain$sum_rain)
+
+
+#rename some clm to make it clear
+df_gs <- df_gs %>% rename(GS_rainfall_defined_date_historical =GS_decile_max_rain,
+                          GS_rainfall_defined_date_current_yr = sum_rain,
+                          summer_rain_current_yr = summer_rain_sum)
+
+
+```
+
+
+
+## Calulate a number of variables:
+
+
+* **Baseline**						
+* 1. ` Estimated Starting Water (mm) = Summer rainfall *.25						
+* 2. `Estimated Evaporation` = (Estimated Rainfall to maturity + GSR to date) *0.4						
+* 3. `Estimated Water Supply` = (GS Rain + Estimated rainfall to maturity+ Estimated Starting water) - Estimated Evaporation						
+* 4. `Estimated Yield Potential (kg/ha) = Estimated Water Supply *20						
+* 5.  Yield_forecast = 80% * `EPY` 						
+
+
+
+```{r append cals Baseline, echo=FALSE}
+
+df_gs <- df_gs %>% 
+  mutate(est_sw_base = (summer_rain_current_yr*.25),
+         
+         est_evap_base = (GS_rainfall_defined_date_historical +GS_rainfall_defined_date_current_yr)*0.4,
+         
+         est_water_supp_base = ((GS_rainfall_defined_date_current_yr + 
+                             GS_rainfall_defined_date_historical+ 
+                             est_sw_base) -   est_evap_base),
+         
+         est_yp_base = (est_water_supp_base *20),
+         Yld_forecast_base = (est_yp_base*.80)
+         )
+
+
+ 
+ df_gs_base <- df_gs %>% select(Defined_date_common_year, GS_deciles_names, GS_rainfall_defined_date_historical,
+                               Station_name, Station_number, summer_rain_current_yr, GS_rainfall_defined_date_current_yr,
+                               
+                               est_sw_base,
+                               est_evap_base,
+                               est_water_supp_base,
+                               est_yp_base,
+                               Yld_forecast_base)
+ 
+ df_gs_base <- df_gs_base %>% mutate(across(where(is.numeric), round, 2))
+  DT::datatable(df_gs_base)
+
+```
+
+
+
+
+
+* **Frontier**
+* 1. ` Estimated Starting Water (mm) = Summer rainfall *.30
+* 2. `Estimated Evaporation` = (Estimated Rainfall to maturity + GSR to date) * 0.18 +15
+* 3. `Estimated Water Supply` = (GS Rain + Estimated rainfall to maturity+ Estimated Starting water) - Estimated Evaporation
+* 4. `Estimated Yield Potential (kg/ha) = Estimated Water Supply *26
+* 5. Yield_forecast = 80% * `EPY` 
+
+
+```{r append cals Frontier, echo=FALSE}
+
+
+df_gs <- df_gs %>% 
+  mutate(est_sw_front = (summer_rain_current_yr*.30),
+         
+         est_evap_front = (GS_rainfall_defined_date_historical +GS_rainfall_defined_date_current_yr)*0.18+15,
+         
+         est_water_supp_front = ((GS_rainfall_defined_date_current_yr + 
+                                   GS_rainfall_defined_date_historical+ 
+                                   est_sw_base) -   est_evap_base),
+         
+         est_yp_front = (est_water_supp_front *26),
+         Yld_forecast_front = (est_yp_front*.80)
+  )
+
+
+#names(df_gs)
+
+
+
+df_gs_front <- df_gs %>% select(Defined_date_common_year, GS_deciles_names, GS_rainfall_defined_date_historical,
+                               Station_name, Station_number, summer_rain_current_yr, GS_rainfall_defined_date_current_yr,
+                               
+                               est_sw_front,
+                               est_evap_front,
+                               est_water_supp_front,
+                               est_yp_front,
+                               Yld_forecast_front)
+
+ df_gs_front <- df_gs_front %>% mutate(across(where(is.numeric), round, 2))
+  DT::datatable(df_gs_front)
+
+
+```
+
+
+* **Future**
+* 1. ` Estimated Starting Water (mm) = Summer rainfall *.30
+* 2. `Estimated Evaporation` = (Estimated Rainfall to maturity + GSR to date) * 0.18 +15
+* 3. `Estimated Water Supply` = (GS Rain + Estimated rainfall to maturity+ Estimated Starting water) - Estimated Evaporation
+* 4. `Estimated Yield Potential (kg/ha) = Estimated Water Supply *26
+* 5. Yield_forecast = Estimated Yield Potential (kg/ha)
+
+```{r append cals Future, echo=FALSE}
+df_gs_future <- df_gs %>% select(Defined_date_common_year, GS_deciles_names, GS_rainfall_defined_date_historical,
+                               Station_name, Station_number, summer_rain_current_yr, GS_rainfall_defined_date_current_yr,
+                               
+                               est_sw_front,
+                               est_evap_front,
+                               est_water_supp_front,
+                               est_yp_front
+                               ) %>% 
+  rename(est_sw_future = est_sw_front,
+         est_evap_future = est_evap_front,
+         est_water_supp_future = est_water_supp_front,
+         est_yp_future = est_yp_front)
+
+
+ df_gs_front <- df_gs_front %>% mutate(across(where(is.numeric), round, 2))
+  DT::datatable(df_gs_front)
+
+```
+
+
+
+
+
+
+#### Reformat the df for plotting.
+
+```{r reformat for plot, echo=FALSE, message=FALSE, warning=FALSE}
+
+### Reformat for plotting
+#names(df_gs)
+df_plot <- df_gs %>%
+  select(
+    GS_deciles_names,
+    Defined_date_common_year,
+    Station_name,
+    Station_number,
+    Yld_forecast_base,
+    Yld_forecast_front,
+    est_yp_front
+  ) %>%
+  rename(Yld_forecast_future = est_yp_front)
+
+df_plot_long <- df_plot %>% pivot_longer(
+  cols = starts_with("Yld"),
+  names_to = "Method",
+  values_to = "Yield")
+  
+  
+#df_plot_long
+
+
+
+df_plot_long$GS_deciles_names <- factor(df_plot_long$GS_deciles_names , ordered = TRUE, 
+                                           levels = c("decile_1", "decile_2", "decile_3", "decile_4",
+                                                      "decile_5", "decile_6", "decile_7", "decile_8",
+                                                      "decile_9","decile_10" ))
+#df_plot_long %>% distinct(Defined_date_common_year)
+
+df_plot_long$defined_date <- factor(
+  df_plot_long$Defined_date_common_year ,
+  ordered = TRUE,
+  levels = c(
+    "2023-04-01",
+    "2023-05-01",
+    "2023-06-01",
+    "2023-06-15",
+    "2023-07-01",
+    "2023-07-15",
+    "2023-08-01",
+    "2023-09-01",
+    "2023-10-01"
+  )
+)
+
+
+
+
+
+```
+# Create plots of results
+
+```{r pre plot work, echo=FALSE}
+
+
+plot1 <- df_plot_long %>% 
+  filter(GS_deciles_names  == "decile_3" |GS_deciles_names  == "decile_5"| GS_deciles_names  == "decile_7" ) %>% 
+  ggplot(aes(x = Defined_date_common_year , y = Yield , group=Method) )+
+  geom_point(aes(color=Method))+
+  geom_line(aes(color=Method))+
+  theme_bw()+
+  facet_wrap(.~GS_deciles_names)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(title = "Forecasted yield potential from defined date in the GS.",
+       subtitle =  "Using different methods, by decile years",
+       caption =  paste0("Year: ", year,  ". Site: ", site_selected),
+       y = "Forecasted yield potential",
+       x = "Dates in the growing season",
+       colour = "" #removed the legend title
+  )
+plot1
+
+
+```
+
+
+
+
+# Save file
+* Saving to this folder.
+* If it is in another location change the bellow code chuck.(file_path_input_data)
+* 
+
+
+
+```{r save files, echo=FALSE}
+
+ 
+ 
+path_saved_files <- file_path_input_data<-file.path("N:","sandy soils conference", "data", "climate_data","Forecast_ylds")
+
+ggsave(plot = plot1,
+       filename = paste0(path_saved_files,"/Forecast_yld_plot_", "site_", site_selected, "_year_", year, ".png" ),
+       width = 20, height = 12, units = "cm")
+
+
+write_csv(df_gs,
+          paste0(path_saved_files,"/Forecast_yld_plot_", "site_", site_selected, "_year_", year, ".csv" ))
+write_csv(df_plot_long,
+          paste0(path_saved_files,"/Forecast_yld_long_format", "site_", site_selected, "_year_", year, ".csv" ))
+```

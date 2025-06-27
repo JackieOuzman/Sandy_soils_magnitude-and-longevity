@@ -1,0 +1,654 @@
+---
+title: "Step 4a creating decile tables for set dates"
+author: "Jackie"
+date: "2025-04-02"
+output: html_document
+---
+
+```{r load_libary, include=FALSE}
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(stringr)
+```
+
+# Workflow for analysing climate data creating decile tables and forecasting yields.
+* Series of R markdown. Best to run these in order, but once you have historical yields step 2 and 3 they don’t need to be repeated to get a yield forecast.  
+**Step 1** 
+ *	Download patch point met file, tidy up and saved to directory. User to specify the site number.  
+**Step 2** 
+*	User defined site, and ‘season’.
+*	Create plot sum of rain, per year, per season for site selected
+*	Create historical files 1. Decile table for GS. 2. Decile table summer season.
+*	File for each year with sum of rain per year and season type.  
+**Step 3**
+*	User defined site creates yield potential for decile years, using baseline and frontier approach.
+*	Creates plot 
+**Step 4a**
+*	User defined site, and ‘season’, and set dates
+*	Create plot sum of rain, per year, per season for site selected for set dates
+*	Create historical files 1. Decile table for GS for set dates. 
+*	File for each year with sum of rain per year and set date.   
+**Step 4**
+*	User defined site creates yield forecast for decile years, using baseline and frontier approach for defined dates
+*	Creates plot  
+
+## How to defined the end and end of growing season
+* The default is 15/10 (15th Oct)
+* If you want to change this modified the below code chunk.
+
+```{r define start and end of GS, echo=FALSE}
+
+#always the same start of the GS but a different end
+Day_end_GS_rainfall <- 15
+Month_end_GS_rainfall <- 10
+
+```
+
+
+
+
+## Choose what site you want to create decile table for.
+
+
+```{r list of sites, echo=FALSE}
+list_of_sites <- data.frame(
+    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", 
+             "Balaklava", "Annuello", "YEELANNA", "KIMBA", "NARACOORTE",
+             "RED_CLIFFS"), ### add more here when you have the info
+    Number = c("25006", "18113", "25003", "76065", "21012", 
+               "21002", "76000", "018099", "018040", "026015",
+               "076052"),
+    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86",
+                 "-34.14", "-34.85", "-34.132", "11", "11",
+                 "11"),
+    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", 
+                  "138.42", "142.78", "135.730", "11", "11",
+                  "11"),
+    State = c("SA", "SA", "SA", "VIC","SA", 
+              "SA", "VIC", "SA", "SA", "SA",
+              "VIC")
+)
+
+DT::datatable(list_of_sites)
+
+```
+
+
+## List of files in step 1
+* Looking in this folder.
+* If it is in another location change the bellow code chuck.(file_path_input_data)
+* "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Downloaded_files"
+
+```{r list of sites with decile tables, echo=FALSE}
+
+ file_path_input_data<-file.path("N:","sandy soils conference", "data", "climate_data")
+
+list_of_file <- list.files(path = file_path_input_data, pattern = ".csv")
+list_of_file <- as.data.frame(list_of_file)
+DT::datatable(list_of_file)
+ 
+```
+
+## Select the site number
+* create a new variable in the below code chuck that will be used for the analysis
+* Shiny application would be nice but then I have problem saving the output.
+
+```{r sites_selction, echo=FALSE}
+ site_selected <- "018099"
+print(site_selected)
+```
+## Download the **Neater met file**  
+
+```{r sites_selction_download, echo=FALSE}
+
+path <-  file.path("N:","sandy soils conference", "data", "climate_data")
+
+df <- read.csv(paste0(path, "/Neater_file_", site_selected,  ".csv")) 
+
+```
+
+
+#### Date range of file you have selected.
+```{r sites_selction_date range, echo=FALSE}
+
+#File start date and end date
+paste("Start date in file is: ",
+      min(df$Date),
+      ". End date in file is: ",
+      max(df$Date))
+      
+ 
+paste("Site Name (BOM): ", unique(df$Name),
+      ". Site Number (BOM): ", unique(df$Number)
+      )
+           
+
+
+```  
+
+### Do you want to use this full data set?
+* The default is 1/1/1900 to 31/12/2023
+* If you want to change it modify the below code chunk.
+
+```{r subset date range, echo=FALSE}
+df_all_date <- df #keep this
+
+start <- "1900-01-01"
+end <- "2023-12-31"
+
+### Filter dataset based on years 
+df <- df %>% filter(between(Date, as.Date(start), as.Date(end)))
+
+```
+
+
+
+
+#### What dates do you what the GS rainfall 
+* This will be how much rain you are expecting in a decile 1 year 'on a date' to the end of the GS
+
+```{r sites_selction_download GS file, echo=FALSE, warning=FALSE}
+Day_defined_date1 <- 1 
+Month_defined_date1 <- 4 
+
+Day_defined_date2 <- 1 
+Month_defined_date2 <- 5
+
+Day_defined_date3 <- 1 
+Month_defined_date3 <- 6 
+
+Day_defined_date4 <- 15 
+Month_defined_date4 <- 6 
+
+Day_defined_date5 <- 1 
+Month_defined_date5 <- 7
+
+Day_defined_date6 <- 15 
+Month_defined_date6 <- 7 
+
+Day_defined_date7 <- 1 
+Month_defined_date7 <- 8 
+
+Day_defined_date8 <- 1 
+Month_defined_date8 <- 9 
+
+Day_defined_date9 <- 1 
+Month_defined_date9 <- 10
+
+date1 <- paste0(Day_defined_date1, "-", Month_defined_date1)
+date2 <- paste0(Day_defined_date2, "-", Month_defined_date2)
+date3 <- paste0(Day_defined_date3, "-", Month_defined_date3)
+date4 <- paste0(Day_defined_date4, "-", Month_defined_date4)
+date5 <- paste0(Day_defined_date5, "-", Month_defined_date5)
+date6 <- paste0(Day_defined_date6, "-", Month_defined_date6)
+date7 <- paste0(Day_defined_date7, "-", Month_defined_date7)
+date8 <- paste0(Day_defined_date8, "-", Month_defined_date8)
+date9 <- paste0(Day_defined_date9, "-", Month_defined_date9)
+
+
+```
+
+
+## GS decile table  with different start dates for GS
+
+```{r decile table GS step 1, echo=FALSE, message=FALSE, warning=FALSE}
+
+### I need to make this into a loop 
+## add a clm with two dates marked as start and end of GS
+df_orginal <- df
+df <- df  %>% select(Date,year, month, month_name, day_of_month,Rain)
+
+df <- df %>% mutate(
+  start_end_GS_date1 = case_when(
+    month == Month_defined_date1 & day_of_month == Day_defined_date1 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date2 = case_when(
+    month == Month_defined_date2 & day_of_month == Day_defined_date2 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date3 = case_when(
+    month == Month_defined_date3 & day_of_month == Day_defined_date3 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date4 = case_when(
+    month == Month_defined_date4 & day_of_month == Day_defined_date4 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date5 = case_when(
+    month == Month_defined_date5 & day_of_month == Day_defined_date5 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date6 = case_when(
+    month == Month_defined_date6 & day_of_month == Day_defined_date6 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+df <- df %>% mutate(
+  start_end_GS_date7 = case_when(
+    month == Month_defined_date7 & day_of_month == Day_defined_date7 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+
+df <- df %>% mutate(
+  start_end_GS_date8 = case_when(
+    month == Month_defined_date8 & day_of_month == Day_defined_date8 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+
+df <- df %>% mutate(
+  start_end_GS_date9 = case_when(
+    month == Month_defined_date9 & day_of_month == Day_defined_date9 ~ "start_gs",
+    month == Month_end_GS_rainfall & day_of_month == Day_end_GS_rainfall ~ "end_gs",
+    TRUE ~ NA))
+
+### fill the blanks
+
+df <- df %>% 
+  fill(start_end_GS_date1) %>%
+  mutate(season_GS1 = case_when(
+      start_end_GS_date1 == "start_gs" ~ "gs",
+      TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date2) %>%
+  mutate(  season_GS2 = case_when(
+    start_end_GS_date2 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date3) %>%
+  mutate(  season_GS3 = case_when(
+    start_end_GS_date3 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date4) %>%
+  mutate(  season_GS4 = case_when(
+    start_end_GS_date4 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date5) %>%
+  mutate(  season_GS5 = case_when(
+    start_end_GS_date5 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date6) %>%
+  mutate(  season_GS6 = case_when(
+    start_end_GS_date6 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+df <- df %>% 
+  fill(start_end_GS_date7) %>%
+  mutate(  season_GS7 = case_when(
+    start_end_GS_date7 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+
+df <- df %>% 
+  fill(start_end_GS_date8) %>%
+  mutate(  season_GS8 = case_when(
+    start_end_GS_date8 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+
+df <- df %>% 
+  fill(start_end_GS_date9) %>%
+  mutate(  season_GS9 = case_when(
+    start_end_GS_date9 == "start_gs" ~ "gs",
+    TRUE ~ "other"))
+
+df <- df %>% select(-start_end_GS_date1, 
+                              -start_end_GS_date2,
+                              -start_end_GS_date3,
+                              -start_end_GS_date4,
+                              -start_end_GS_date5,
+                              -start_end_GS_date6,
+                              -start_end_GS_date7,
+                              -start_end_GS_date8,
+                              -start_end_GS_date9
+                    )
+```
+
+```{r decile table GS step 2, echo=FALSE, message=FALSE, warning=FALSE}
+
+gs_rain1 <- df %>%
+  group_by(year, season_GS1) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS1 == "gs")
+gs_rain2 <- df %>%
+  group_by(year, season_GS2) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS2 == "gs")
+gs_rain3 <- df %>%
+  group_by(year, season_GS3) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS3 == "gs")
+gs_rain4 <- df %>%
+  group_by(year, season_GS4) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS4 == "gs")
+gs_rain5 <- df %>%
+  group_by(year, season_GS5) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS5 == "gs")
+gs_rain6 <- df %>%
+  group_by(year, season_GS6) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS6 == "gs")
+gs_rain7 <- df %>%
+  group_by(year, season_GS7) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS7 == "gs")
+gs_rain8 <- df %>%
+  group_by(year, season_GS8) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS8 == "gs")
+gs_rain9 <- df %>%
+  group_by(year, season_GS9) %>%
+  summarise(sum_rain_season = sum(Rain, na.rm = TRUE)) %>%
+  filter(season_GS9 == "gs")
+
+
+```
+
+```{r decile table GS step 3, echo=FALSE, message=FALSE, warning=FALSE}
+## 5a. GS ----------------------------------------------------------------------
+#the percentiles for each year.
+
+#date1
+GS_decile_max_rain1 <- quantile(gs_rain1$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names1 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table1 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain1,
+  GS_deciles_names = GS_deciles_names1,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain1 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date1, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table1[1,2] <-  min(gs_rain1$sum_rain_season)
+
+#date2
+GS_decile_max_rain2 <- quantile(gs_rain2$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names2 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table2 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain2,
+  GS_deciles_names = GS_deciles_names2,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain2 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date2, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table2[1,2] <-  min(gs_rain2$sum_rain_season)
+
+#date3
+GS_decile_max_rain3 <- quantile(gs_rain3$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names3 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table3 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain3,
+  GS_deciles_names = GS_deciles_names3,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain3 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date3, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table3[1,2] <-  min(gs_rain3$sum_rain_season)
+
+
+#date4
+GS_decile_max_rain4 <- quantile(gs_rain4$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names4 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table4 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain4,
+  GS_deciles_names = GS_deciles_names4,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain4 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date4, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table4[1,2] <-  min(gs_rain4$sum_rain_season)
+
+#date5
+GS_decile_max_rain5 <- quantile(gs_rain5$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names5 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table5 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain5,
+  GS_deciles_names = GS_deciles_names5,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain5 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date5, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table5[1,2] <-  min(gs_rain5$sum_rain_season)
+
+#date6
+GS_decile_max_rain6 <- quantile(gs_rain6$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names6 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table6 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain6,
+  GS_deciles_names = GS_deciles_names6,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain6 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date6, "to 14-10")) %>%
+  select(GS_deciles_names,GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table6[1,2] <-  min(gs_rain6$sum_rain_season)
+
+
+#date7
+GS_decile_max_rain7 <- quantile(gs_rain7$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names7 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table7 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain7,
+  GS_deciles_names = GS_deciles_names7,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain7 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date7, "to 14-10")) %>%
+  select(GS_deciles_names, GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table7[1,2] <-  min(gs_rain7$sum_rain_season)
+
+#date8
+GS_decile_max_rain8 <- quantile(gs_rain8$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names8 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table8 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain8,
+  GS_deciles_names = GS_deciles_names8,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain8 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date8, "to 14-10")) %>%
+  select(GS_deciles_names, GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table8[1,2] <-  min(gs_rain8$sum_rain_season)
+
+
+#date9
+GS_decile_max_rain9 <- quantile(gs_rain9$sum_rain_season, c(.1, .2, .3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))
+GS_deciles_names9 <- c("decile_1", "decile_2", "decile_3", "decile_4", "decile_5", "decile_6", "decile_7", "decile_8", "decile_9", "decile_10")
+
+GS_decile_table9 <- data.frame(
+  GS_decile_max_rain = GS_decile_max_rain9,
+  GS_deciles_names = GS_deciles_names9,
+  row.names = NULL
+) %>%
+  mutate(GS_decile_min_rain = lag(GS_decile_max_rain9 + 0.1)) %>%
+  mutate(defined_date = paste0("from ", date9, "to 14-10")) %>%
+  select(GS_deciles_names, GS_decile_min_rain, GS_decile_max_rain, defined_date)
+#add in the min value to table
+GS_decile_table9[1,2] <-  min(gs_rain8$sum_rain_season)
+
+
+```
+
+```{r decile table GS step 4, echo=FALSE, message=FALSE, warning=FALSE}
+
+GS_decile_table <- rbind(GS_decile_table1,
+                         GS_decile_table2,
+                         GS_decile_table3,
+                         GS_decile_table4,
+                         GS_decile_table5,
+                         GS_decile_table6,
+                         GS_decile_table7,
+                         GS_decile_table8,
+                         GS_decile_table9)
+
+
+rm(
+  GS_decile_table1,
+  GS_decile_table2,
+  GS_decile_table3,
+  GS_decile_table4,
+  GS_decile_table5,
+  GS_decile_table6,
+  GS_decile_table7,
+  GS_decile_table8,
+  GS_decile_table9,
+  
+  GS_decile_max_rain1,
+  GS_decile_max_rain2,
+  GS_decile_max_rain3,
+  GS_decile_max_rain4,
+  GS_decile_max_rain5,
+  GS_decile_max_rain6,
+  GS_decile_max_rain7,
+  GS_decile_max_rain8,
+  GS_decile_max_rain9,
+  
+  GS_deciles_names1,
+  GS_deciles_names2,
+  GS_deciles_names3,
+  GS_deciles_names4,
+  GS_deciles_names5,
+  GS_deciles_names6,
+  GS_deciles_names7,
+  GS_deciles_names8,
+  GS_deciles_names9,
+   
+  gs_rain1,
+  gs_rain2,
+  gs_rain3,
+  gs_rain4,
+  gs_rain5,
+  gs_rain6,
+  gs_rain7,
+  gs_rain8,
+  gs_rain9
+)
+
+GS_decile_table <- as.data.frame(GS_decile_table)
+GS_decile_table <- GS_decile_table %>% mutate(across(where(is.numeric), round, 2))
+
+GS_decile_table <- GS_decile_table %>% 
+  mutate(Station_name = unique(df_orginal$Name),
+         Station_number = unique(df_orginal$Number),
+         Years_included = paste0(
+           year(min(df_orginal$Date)) ,  " to ", 
+           year(max(df_orginal$Date))))
+
+
+DT::datatable(GS_decile_table)
+
+```
+
+###  Plot results
+
+```{r plot, echo=FALSE, message=FALSE, warning=FALSE}
+
+GS_decile_table$GS_deciles_names <- factor(GS_decile_table$GS_deciles_names , ordered = TRUE, 
+                                      levels = c("decile_1", "decile_2", "decile_3", "decile_4",
+                                                 "decile_5", "decile_6", "decile_7", "decile_8",
+                                                 "decile_9","decile_10" ))
+
+GS_decile_table$defined_date <- factor(
+  GS_decile_table$defined_date ,
+  ordered = TRUE,
+  levels = c(
+    "from 1-4to 14-10",
+    "from 1-5to 14-10",
+    "from 1-6to 14-10",
+    "from 15-6to 14-10",
+    "from 1-7to 14-10",
+    "from 15-7to 14-10",
+    "from 1-8to 14-10",
+    "from 1-9to 14-10",
+    "from 1-10to 14-10"
+  )
+)
+
+
+plot1 <- GS_decile_table %>% 
+  ggplot(aes(x = GS_deciles_names , y = GS_decile_max_rain, group=defined_date) )+
+  geom_point(aes(color=defined_date))+
+  geom_line(aes(color=defined_date))+
+  theme_bw()+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+   labs(title = "GS rainfall from defined date, by decile years",
+        y = "sum of rainfall within GS starting at different dates",
+        x = "",
+        colour = "" #removed the legend title
+  )
+plot1
+
+```
+
+
+## Save outputs 
+* Summer decile table
+* GS decile table
+* Year with decile info and rainfall info per year and season type (GS, summer)
+* Plot of rainfall sum per year and season type
+* Daily met file with site info and season type but all date (df_all_date)
+
+
+
+
+```{r save files, echo=FALSE, message=FALSE, warning=FALSE}
+
+Files_saved <- "N:/sandy soils conference/data/climate_data/Decile_tables/"
+#decile tables
+# GS_decile_table_df
+# summer_decile_table_df
+
+write_csv(GS_decile_table, 
+          file =paste0(Files_saved, "GS_decile_table_df_fixed_dates_", site_selected, ".csv"))
+
+
+
+#plot
+ ggsave(plot = plot1,
+       filename = paste0(Files_saved,"plot1_GS_decile_table_df_fixed_dates_", site_selected, ".png"),
+       width = 20, height = 12, units = "cm")
+
+
+
+```
+
+```{r files in directory, echo=FALSE, message=FALSE, warning=FALSE}
+Files_saved <- "N:/sandy soils conference/data/climate_data/Decile_tables/"
+files <- list.files(path = Files_saved,full.names = TRUE, pattern = ".csv")
+
+file_info <- file.info(files)
+file_info$file_name <- rownames(file_info)
+file_info <- file_info %>%
+  dplyr::select(atime)
+#names(file_info)
+DT::datatable(file_info)
+```
