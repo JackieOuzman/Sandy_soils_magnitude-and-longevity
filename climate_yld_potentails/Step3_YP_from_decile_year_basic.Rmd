@@ -36,12 +36,22 @@ library(DT)
 
 ```{r list of sites, echo=FALSE}
 list_of_sites <- data.frame(
-    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", "Balaklava", "Annuello"), ### add more here when you have the info
-    Number = c("25006", "18113", "25003", "76065", "21012", "21002", "76000"),
-    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86", "-34.14", "-34.85"),
-    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", "138.42", "142.78"),
-    State = c("SA", "SA", "SA", "VIC","SA", "SA", "VIC")
-    )
+    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", 
+             "Balaklava", "Annuello", "YEELANNA", "KIMBA", "NARACOORTE",
+             "RED_CLIFFS"), ### add more here when you have the info
+    Number = c("25006", "18113", "25003", "76065", "21012", 
+               "21002", "76000", "018099", "018040", "026015",
+               "076052"),
+    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86",
+                 "-34.14", "-34.85", "-34.132", "11", "11",
+                 "11"),
+    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", 
+                  "138.42", "142.78", "135.730", "11", "11",
+                  "11"),
+    State = c("SA", "SA", "SA", "VIC","SA", 
+              "SA", "VIC", "SA", "SA", "SA",
+              "VIC")
+)
 
 DT::datatable(list_of_sites)
 
@@ -55,8 +65,7 @@ DT::datatable(list_of_sites)
 * "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Decile_tables"
 
 ```{r list of sites with decile tables, echo=FALSE}
-
- file_path_input_data<-file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Decile_tables")
+file_path_input_data<-file.path("N:","sandy soils conference", "data", "climate_data", "Decile_tables")
 
 list_of_file <- list.files(path = file_path_input_data, pattern = ".csv")
 list_of_file <- as.data.frame(list_of_file)
@@ -68,7 +77,7 @@ DT::datatable(list_of_file)
 * Shiny application would be nice but then I have problem saving the output.
 
 ```{r sites_selction, echo=FALSE}
- site_selected <- "25006"
+ site_selected <- "026015"
 print(site_selected)
 ```
 
@@ -254,12 +263,14 @@ plot1
 # Save file
 * Saving to this folder.
 * If it is in another location change the bellow code chuck.(file_path_input_data)
-* "//fs1-cbr.nexus.csiro.au/{af-sandysoils-ii}/work/Output-2/Analysis/Scripts/Jackie/Decile_tables"
+* 
 
 
 
 ```{r save files, echo=FALSE}
-path_saved_files <- file_path_input_data<-file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Decile_tables")
+path_saved_files <- file.path("N:","sandy soils conference", "data", "climate_data", "Yld_potentails")
+
+
 
 ggsave(plot = plot1,
        filename = paste0(path_saved_files,"/Plot_YP based on GS decile years",site_selected ,".png" ), 

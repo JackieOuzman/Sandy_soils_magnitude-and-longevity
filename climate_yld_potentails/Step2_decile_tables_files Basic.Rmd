@@ -78,12 +78,22 @@ Month_end_summer_rainfall_before_GS <- 4
 
 ```{r list of sites, echo=FALSE}
 list_of_sites <- data.frame(
-    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", "Balaklava", "Annuello"), ### add more here when you have the info
-    Number = c("25006", "18113", "25003", "76065", "21012", "21002", "76000"),
-    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86", "-34.14", "-34.85"),
-    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", "138.42", "142.78"),
-    State = c("SA", "SA", "SA", "VIC","SA", "SA", "VIC")
-    )
+    Name = c("Karoonda", "Wharminda", "Copeville", "Walpeup" , "Bute", 
+             "Balaklava", "Annuello", "YEELANNA", "KIMBA", "NARACOORTE",
+             "RED_CLIFFS"), ### add more here when you have the info
+    Number = c("25006", "18113", "25003", "76065", "21012", 
+               "21002", "76000", "018099", "018040", "026015",
+               "076052"),
+    Latitude = c("-35.09", "-33.97", "-34.80", "-35.14",  "-33.86",
+                 "-34.14", "-34.85", "-34.132", "11", "11",
+                 "11"),
+    Longitude = c("139.90", "136.25", "139.85", "142.02", "138.01", 
+                  "138.42", "142.78", "135.730", "11", "11",
+                  "11"),
+    State = c("SA", "SA", "SA", "VIC","SA", 
+              "SA", "VIC", "SA", "SA", "SA",
+              "VIC")
+)
 
 DT::datatable(list_of_sites)
 
@@ -97,7 +107,7 @@ DT::datatable(list_of_sites)
 
 ```{r list of sites with decile tables, echo=FALSE}
 
- file_path_input_data<-file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Downloaded_files")
+ file_path_input_data<-file.path("N:","sandy soils conference", "data", "climate_data")
 
 list_of_file <- list.files(path = file_path_input_data, pattern = ".csv")
 list_of_file <- as.data.frame(list_of_file)
@@ -110,14 +120,14 @@ DT::datatable(list_of_file)
 * Shiny application would be nice but then I have problem saving the output.
 
 ```{r sites_selction, echo=FALSE}
- site_selected <- "25006"
+ site_selected <- "026015"
 print(site_selected)
 ```
 ## Download the **Neater met file**  
 
 ```{r sites_selction_download, echo=FALSE}
 
-path <-  file.path("H:","Output-2", "Analysis", "Scripts", "Jackie", "Downloaded_files")
+path <-  file.path("N:","sandy soils conference", "data", "climate_data")
 
 df <- read.csv(paste0(path, "/Neater_file_", site_selected,  ".csv")) 
 
@@ -440,7 +450,8 @@ DT::datatable(Year_with_Deciles)
 
 ```{r save files, echo=FALSE, message=FALSE, warning=FALSE}
 
-Files_saved <- "H:/Output-2/Analysis/Scripts/Jackie/Decile_tables/"
+
+Files_saved <- "N:/sandy soils conference/data/climate_data/Decile_tables/"
 #decile tables
 # GS_decile_table_df
 # summer_decile_table_df
@@ -466,7 +477,7 @@ write_csv(df_all_date,
 ```
 
 ```{r files in directory, echo=FALSE, message=FALSE, warning=FALSE}
-Files_saved <- "H:/Output-2/Analysis/Scripts/Jackie/Decile_tables/"
+Files_saved <- "N:/sandy soils conference/data/climate_data/Decile_tables/"
 files <- list.files(path = Files_saved,full.names = TRUE, pattern = ".csv")
 
 file_info <- file.info(files)
