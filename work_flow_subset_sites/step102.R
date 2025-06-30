@@ -229,5 +229,6 @@ check_brooker
 # remove brooker ?
 # clean up which yld output I want to use - remove the rest
 # tody up data so I have less clms 
-#Tillage treatmnet 
+#next step to make a neat df with tillage type and yld response and soil constarints, deciles, 
+#do I need a year?
 df_1 <- df 
