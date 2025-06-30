@@ -9,7 +9,7 @@ library(stringr)
 library(ggpubr)
 
 
-#The data has been mauipliated in "Analysis for sandys soils conf 2025 version 2.rmd
+#The data has been manipulated in "Analysis for sandy soils conf 2025 version 2.rmd
 # With the output as 
 # this should have the reps matched to a control
 
@@ -24,6 +24,8 @@ df <- df %>% filter(  site_display == "Brimpton Lake"|
                       site_display == "Bute boundary"|
                       site_display == "Cadgee"
                                             )
+
+
 
 str(df)
 df_selection  <- df %>% select(
@@ -66,21 +68,40 @@ df_selection <- df_selection %>% mutate(for_join = paste0(Station_number, year, 
 
 str(df_selection)
 ################################################################################
-#Bring in the yiled potentails by year and crop
+#Bring in the NEW FRONT yield potentials by year and crop
 
 NewFront_YP <- read.csv("N:/sandy soils conference/data/climate_data/Yld_potentails_for_DB/NewFront_YP_yr_decile_crop_long_multiple_sites.csv" )
 str(NewFront_YP)
-NewFront_YP <- NewFront_YP %>% mutate(for_join = paste0(Station_number, year, Crop)) %>% 
-  select(-Crop,-Station_number, -year)
+NewFront_YP <- NewFront_YP %>% mutate(for_join = paste0(Station_number, year, Crop)) %>%
+  select(-Crop,-Station_number, -year) %>% 
+  rename(YP_NewFront  = YP)
 
-df_join <- left_join(df_selection, NewFront_YP, 
+df_join <- left_join(df_selection, NewFront_YP,
                        by = join_by(for_join))
-                       
-test_join_anti <- anti_join(df_selection, NewFront_YP, 
-                       by = join_by(for_join))    
+
+test_join_anti <- anti_join(df_selection, NewFront_YP,
+                       by = join_by(for_join))
 check <-  df_join %>%  distinct(for_join, .keep_all = TRUE) # this is just a check and it looks good
 rm(check, test_join_anti)
 
+str(df_join)
+################################################################################
+#Bring in the Base yield potentials by year and crop
+
+Base_YP <- read.csv("N:/sandy soils conference/data/climate_data/Yld_potentails_for_DB/Base_YP_yr_decile_crop_long_multiple_sites.csv" )
+str(Base_YP)
+Base_YP <- Base_YP %>% mutate(for_join = paste0(Station_number, year, Crop)) %>% 
+  select(for_join,YP )
+
+df_join <- left_join(df_join, Base_YP, 
+                     by = join_by(for_join))
+
+# test_join_anti <- anti_join(df_selection, Base_YP, 
+#                             by = join_by(for_join))    
+# check <-  df_join %>%  distinct(for_join, .keep_all = TRUE) # this is just a check and it looks good
+# rm(check, test_join_anti)
+
+str(df_join)
 
 ################################################################################
 ## Plots to check what should I use
@@ -88,7 +109,9 @@ str(df_join)
 df_join <- df_join %>% 
   mutate( lnR_Yield = log(yield / control_yield),
           YP_t_ha = (YP/1000),
-          yld_gap = ((yield/(YP_t_ha)*100)))
+          yld_gap_base = ((yield/(YP_t_ha)*100)),
+          YP_t_ha_New_FRONT = (YP_NewFront/1000),
+          yld_gap_base_New_FRONT = ((yield/(YP_t_ha_New_FRONT)*100)))
 
 
 Yld_gain <- df_join %>%  
@@ -114,6 +137,7 @@ Yld_change <- df_join %>%
   filter(!is.na(Station_number )) %>% 
   filter(crop != "Lupins" & crop != "Lentils"  ) %>% 
   filter(tillage_amendments_class != "Unmodified_amendment"   ) %>% 
+  filter(site_display != "Brooker") %>% 
   
   ggplot( mapping = aes( tillage_amendments_class, relative_yld_change)) +
   theme_bw()+
@@ -129,12 +153,12 @@ Yld_change <- df_join %>%
 Yld_change
 
 
-Yld_gap <- df_join %>%  
+Yld_gap_Base <- df_join %>%  
   filter(!is.na(Station_number )) %>% 
   filter(crop != "Lupins" & crop != "Lentils"  ) %>% 
   filter(tillage_amendments_class != "Unmodified_amendment"   ) %>% 
   
-  ggplot( mapping = aes( tillage_amendments_class, yld_gap)) +
+  ggplot( mapping = aes( tillage_amendments_class, yld_gap_base)) +
   theme_bw()+
   geom_boxplot(outlier.shape = NA,
                #alpha = 0.2
@@ -142,16 +166,38 @@ Yld_gap <- df_join %>%
   geom_point()+
   #scale_y_continuous(limits=c(-2,3))+
   geom_hline(yintercept = 100, linetype = "dashed", colour = "red")+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  labs(x = "Tillage type", y = "yld_gap")+
+  labs(x = "Tillage type", y = "yield gap using base")+
   facet_wrap(site_display~crop)
-Yld_gap
+Yld_gap_Base
+
+
+Yld_gap_Front <- df_join %>%  
+  filter(!is.na(Station_number )) %>% 
+  filter(crop != "Lupins" & crop != "Lentils"  ) %>% 
+  filter(tillage_amendments_class != "Unmodified_amendment"   ) %>% 
+  
+  ggplot( mapping = aes( tillage_amendments_class, yld_gap_base_New_FRONT)) +
+  theme_bw()+
+  geom_boxplot(outlier.shape = NA,
+               #alpha = 0.2
+  )+
+  geom_point()+
+  #scale_y_continuous(limits=c(-2,3))+
+  geom_hline(yintercept = 100, linetype = "dashed", colour = "red")+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  labs(x = "Tillage type", y = "yield gap using new front")+
+  facet_wrap(site_display~crop)
+Yld_gap_Front
 
 
 lnR_Yield <- df_join %>%  
   filter(!is.na(Station_number )) %>% 
   filter(crop != "Lupins" & crop != "Lentils"  ) %>% 
-  filter(tillage_amendments_class != "Unmodified_amendment"   ) %>% 
+  filter(tillage_amendments_class != "Unmodified_amendment"   ) %>%
+  filter(site_display != "Brooker") %>% 
   
   ggplot( mapping = aes( tillage_amendments_class, lnR_Yield)) +
   theme_bw()+
@@ -160,8 +206,28 @@ lnR_Yield <- df_join %>%
   )+
   geom_point()+
   #scale_y_continuous(limits=c(-2,3))+
-  #geom_hline(yintercept = 100, linetype = "dashed", colour = "red")+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  labs(x = "Tillage type", y = "yld_gap")+
+  labs(x = "Tillage type", y = "InR Yield")+
   facet_wrap(site_display~crop)
 lnR_Yield
+
+
+################################################################################
+#something weird going on with Brooker # I think I have fixed it?
+
+Brooker <- df %>% filter( site_display == "Brooker")
+#what are the years we are expecting 2019,2020,2021
+check_brooker <- Brooker %>% group_by( year, Descriptors) %>% 
+  summarise(count = n()) %>% 
+  arrange(year)
+
+check_brooker
+
+
+################################################################################
+# remove brooker ?
+# clean up which yld output I want to use - remove the rest
+# tody up data so I have less clms 
+#Tillage treatmnet 
+df_1 <- df 
