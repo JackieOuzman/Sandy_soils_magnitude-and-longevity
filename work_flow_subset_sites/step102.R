@@ -1,5 +1,5 @@
 ###Script for sandy soils data analysis
-
+## which yield output to use?
 
 
 library(ggplot2)
@@ -7,7 +7,7 @@ library(readxl)
 library(tidyverse)
 library(stringr)
 library(ggpubr)
-
+library(nlme)
 
 #The data has been manipulated in "Analysis for sandy soils conf 2025 version 2.rmd
 # With the output as 
@@ -103,6 +103,10 @@ df_join <- left_join(df_join, Base_YP,
 
 str(df_join)
 
+
+
+
+
 ################################################################################
 ## Plots to check what should I use
 str(df_join)
@@ -112,6 +116,9 @@ df_join <- df_join %>%
           yld_gap_base = ((yield/(YP_t_ha)*100)),
           YP_t_ha_New_FRONT = (YP_NewFront/1000),
           yld_gap_base_New_FRONT = ((yield/(YP_t_ha_New_FRONT)*100)))
+
+
+write_csv(df_join,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints_withYP_select_sites.csv" )
 
 
 Yld_gain <- df_join %>%  
@@ -225,10 +232,3 @@ check_brooker <- Brooker %>% group_by( year, Descriptors) %>%
 check_brooker
 
 
-################################################################################
-# remove brooker ?
-# clean up which yld output I want to use - remove the rest
-# tody up data so I have less clms 
-#next step to make a neat df with tillage type and yld response and soil constarints, deciles, 
-#do I need a year?
-df_1 <- df 
