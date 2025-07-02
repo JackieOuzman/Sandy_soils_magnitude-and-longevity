@@ -28,16 +28,16 @@ names(soil_constraints_control)
 soil_constraints <- read.csv("N:/sandy soils conference/data/Shiny_data/primary_data_all_9_05_2023.csv")
 names(soil_constraints)
 
-brooker_control <- soil_constraints_control %>% filter(site_display == "Brooker")
-brooker_soil_constraints <- soil_constraints %>% filter(site == "Brooker")
-
-brooker_control %>% group_by(Descriptors, year) %>% 
-  summarise(count = n()) %>% 
-  arrange(year)
-
-brooker_soil_constraints %>% group_by(Descriptors, year) %>% 
-  summarise(count = n()) %>% 
-  arrange(year)
+# brooker_control <- soil_constraints_control %>% filter(site_display == "Brooker")
+# brooker_soil_constraints <- soil_constraints %>% filter(site == "Brooker")
+# 
+# brooker_control %>% group_by(Descriptors, year) %>% 
+#   summarise(count = n()) %>% 
+#   arrange(year)
+# 
+# brooker_soil_constraints %>% group_by(Descriptors, year) %>% 
+#   summarise(count = n()) %>% 
+#   arrange(year)
 
 ################################################################################
 # List of sites and constraints associated with it plus any other metadata  -------
@@ -70,7 +70,7 @@ site_unique %>%  count()
 
 write_csv(site_unique,"N:/sandy soils conference/data/data for SS prestenation/contraints_mapping.csv" )
 
-brooker_soil_constraints <- site_unique %>% filter(site == "Brooker")
+#brooker_soil_constraints <- site_unique %>% filter(site == "Brooker")
 
 ################################################################################
 # Append  constraints and metatdata to control data  ---------------------------
@@ -109,13 +109,17 @@ df <- df %>% filter(site_display != "remove")
 ### check my names are ok - use site_display
 
 test <- df %>% select(site_display, site) %>% distinct(site, .keep_all = TRUE)
+test
+max(soil_constraints$year) - min(soil_constraints$year)
+soil_constraints %>%  dplyr::distinct(Descriptors) %>% count()
+
 
 ################################################################################
 # remove the treatments no included in Brooker and keep th ones appear in the app  ------
-brooker_df <- df %>% filter(site == "Brooker") %>% 
-  distinct(Descriptors) %>% 
-  arrange(Descriptors)
-brooker_df
+# brooker_df <- df %>% filter(site == "Brooker") %>% 
+#   distinct(Descriptors) %>% 
+#   arrange(Descriptors)
+# brooker_df
 
 
 df <- df %>% mutate(
@@ -190,6 +194,14 @@ Younghusband_treatments <-
   dplyr::distinct(Descriptors)
 print(arrange(Younghusband_treatments))
 rm(Younghusband_treatments)
+
+## check number of sites
+test <- df %>% select(site_display, site) %>% distinct(site, .keep_all = TRUE)
+test
+dim(test)
+
+max(df$year) - min(df$year)
+df %>%  dplyr::distinct(Descriptors) %>% count()
 
 
 
@@ -301,7 +313,7 @@ check_df <- df %>%
   filter(soil_modification != "Unmodified")
 
 count(check_df) #8 excluding the unmodified 
-
+check_df
 
 ################################################################################
 # soil amendments ----------------------------------------
@@ -517,12 +529,12 @@ names(df)
 ### class into tillage type
 df <- df %>% 
   mutate(tillage_class = case_when(
-    soil_modification == "DiscInv" ~          "Ripping_Mixing",
+    soil_modification == "DiscInv" ~          "Inversion",
     soil_modification == "IncRip" ~          "Ripping",
-    soil_modification == "IncRip+Spade" ~    "Ripping_Mixing",
+    soil_modification == "IncRip+Spade" ~    "Combination",
     soil_modification == "Pre" ~              "Ripping",
     soil_modification == "Rip"       ~       "Ripping",
-    soil_modification == "Rip+Spade" ~       "Ripping_Mixing",
+    soil_modification == "Rip+Spade" ~       "Combination",
     soil_modification == "Spade" ~            "Mixing",
     soil_modification == "Sweep" ~            "Ripping",
     soil_modification == "Unmodified" ~        "Unmodified",
@@ -567,4 +579,36 @@ df <- df %>%
 brooker_df <- df %>% filter(site == "Brooker")
 
 
+## check number of sites
+test <- df %>% select(site_display, site) %>% distinct(site, .keep_all = TRUE)
+test
+dim(test)
+
+max(df$year) - min(df$year)
+df %>%  dplyr::distinct(Descriptors) %>% count()
+
+df %>%  dplyr::distinct(Descriptors) %>% arrange(Descriptors)
+df_tillage <- df %>%  filter()
+
+
+
+###############################################################################
+## only keep the tillage treatments
+df_tillage <- df %>% 
+  filter(!str_detect(Descriptors, "^Unmodified"))
+
+## check number of sites
+test <- df_tillage %>% select(site_display, site) %>% distinct(site, .keep_all = TRUE)
+test
+dim(test)
+
+max(df_tillage$year) - min(df_tillage$year)
+df_tillage %>%  dplyr::distinct(Descriptors) %>% count()
+
+df_tillage %>%  dplyr::distinct(Descriptors) %>% arrange(Descriptors)
+
+##############################################################################
+## write out files for the next steps
+
 write_csv(df,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints.csv" )
+write_csv(df_tillage,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints_tillage_only.csv" )

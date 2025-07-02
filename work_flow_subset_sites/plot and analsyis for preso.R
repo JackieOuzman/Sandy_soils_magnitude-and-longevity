@@ -1,3 +1,8 @@
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(stringr)
+
 ## plot and analsyis for preso
 
 ### we grouped our data into 4 And classed into 4 classes:
@@ -10,6 +15,10 @@
 
 
 df <- read.csv("N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints_withYP_select_sites.csv" )
+
+## How many site?
+df %>% distinct(site_display)
+
 
 # Brooker is problematic so lets remove it.
 df <- df %>% filter(  site_display == "Brimpton Lake"|
