@@ -123,7 +123,7 @@ plot_constraints <- ss_constaints_summary_long %>%
   labs(title = "")  
 plot_constraints
 
-
+ss_constaints_summary_long
 ################################################################################
 
 ## number of sites
@@ -143,5 +143,35 @@ treatments_with_tillage <- df %>%  group_by(tillage_amendments_class, Descriptor
   summarise(n = n())
 length(treatments_with_tillage$n)
 
-treatments_with_tillage %>%  group_by(tillage_amendments_class) %>% 
+numb_treatments_by_tillage_class <- treatments_with_tillage %>%  group_by(tillage_amendments_class) %>% 
   summarise(n = n())
+numb_treatments_by_tillage_class
+
+sum_tillage_tyeps <- sum(numb_treatments_by_tillage_class$n)
+numb_treatments_by_tillage_class <- numb_treatments_by_tillage_class %>% 
+  dplyr::mutate(percent = ((n/sum_tillage_tyeps)*100))
+
+numb_treatments_by_tillage_class
+mixing <- numb_treatments_by_tillage_class %>% 
+  filter(tillage_amendments_class == "Mixing_amendment"| 
+         tillage_amendments_class == "Mixing_no_amendment")
+mixing <-(sum(mixing$n) / sum_tillage_tyeps )*100
+mixing
+
+ripping <- numb_treatments_by_tillage_class %>% 
+  filter(tillage_amendments_class == "Ripping_amendment"| 
+           tillage_amendments_class == "Ripping_no_amendment")
+ripping <-(sum(ripping$n) / sum_tillage_tyeps )*100
+ripping
+
+
+Combination <- numb_treatments_by_tillage_class %>% 
+  filter(tillage_amendments_class == "Combination_amendment"| 
+           tillage_amendments_class == "Combination_no_amendment")
+Combination <-(sum(Combination$n) / sum_tillage_tyeps )*100
+Combination
+
+Inversion <- numb_treatments_by_tillage_class %>% 
+  filter(tillage_amendments_class == "Inversion_no_amendment")
+Inversion <-(sum(Inversion$n) / sum_tillage_tyeps )*100
+Inversion

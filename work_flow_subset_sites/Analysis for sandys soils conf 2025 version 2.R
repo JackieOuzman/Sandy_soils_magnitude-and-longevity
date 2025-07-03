@@ -607,6 +607,35 @@ df_tillage %>%  dplyr::distinct(Descriptors) %>% count()
 
 df_tillage %>%  dplyr::distinct(Descriptors) %>% arrange(Descriptors)
 
+
+
+
+###############################################################################
+# There are a few sites that need more cleaning
+# crops = Vetch and Triticale have no yld record so I can remove these:)
+str(df)
+
+distinct(df_tillage,crop)
+
+df <- df %>% filter(crop!= "Vetch",  crop!=  "Triticale")
+df_tillage <- df_tillage %>% filter(crop!= "Vetch",  crop!=  "Triticale")
+
+distinct(df_test,crop)
+distinct(df_tillage,crop)
+
+# There are a few sites that need more cleaning
+# Cadgee yld 2016 is missing in the app so lets remove these rows
+distinct(df,site_display)
+
+df <- df %>% filter(!(site_display == "Cadgee"&  year== 2016))
+df_tillage <- df_tillage %>% filter(!(site_display == "Cadgee"&  year== 2016))
+
+##### some treatments have very low yields I am not sure what to do with this.
+# I would image yields this low reflect an error or something?
+# so I will remove rows with yields and control yield lower than 0.070
+
+dfTEST <- df %>% filter(yield >= 0.07 ,control_yield >= 0.07)
+
 ##############################################################################
 ## write out files for the next steps
 
