@@ -175,3 +175,4 @@ Inversion <- numb_treatments_by_tillage_class %>%
   filter(tillage_amendments_class == "Inversion_no_amendment")
 Inversion <-(sum(Inversion$n) / sum_tillage_tyeps )*100
 Inversion
+

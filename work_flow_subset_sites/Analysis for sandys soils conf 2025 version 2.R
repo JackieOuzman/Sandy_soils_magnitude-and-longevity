@@ -634,7 +634,8 @@ df_tillage <- df_tillage %>% filter(!(site_display == "Cadgee"&  year== 2016))
 # I would image yields this low reflect an error or something?
 # so I will remove rows with yields and control yield lower than 0.070
 
-dfTEST <- df %>% filter(yield >= 0.07 ,control_yield >= 0.07)
+df <- df %>% filter(yield >= 0.07 ,control_yield >= 0.07)
+df_tillage <- df_tillage %>% filter(yield >= 0.07 ,control_yield >= 0.07)
 
 ##############################################################################
 ## write out files for the next steps

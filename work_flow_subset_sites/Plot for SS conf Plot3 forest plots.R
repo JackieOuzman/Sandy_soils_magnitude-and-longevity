@@ -7,6 +7,8 @@ library(dmetar)
 library(tidyverse)
 library(meta)
 
+library(forcats)
+
 ## plot and analsyis for preso
 
 
@@ -40,7 +42,9 @@ df_modified <- df_modified %>% filter(control_yield>  0.0)
 ################################################################################
 
 
-### meta anlaysis option 2 means
+### Option 2 means ----
+#### using InR_yield mean of the treatments ---
+
 df_modified
 df_modified_summary <- df_modified %>% group_by(site_display) %>% 
   summarise(mean = mean(lnR_Yield, na.rm = TRUE),
@@ -66,30 +70,63 @@ summary(m.mean)
 dim(df_modified_summary)
 #how many rows of data ?
 forest_plot_input <- data.frame(
-  Index = seq(1:26), ## This provides an order to the data
+  #Index = seq(1:26), ## This provides an order to the data
   label = m.mean$studlab,
   SMD = m.mean$TE,
   LL = m.mean$lower,
-  UL =  m.mean$upper)
+  UL =  m.mean$upper,
+  n = m.mean$n)
+
 forest_plot_input
+forest_plot_input <- forest_plot_input %>% arrange(SMD) %>% 
+  dplyr::mutate(Index = seq(1:26))
+forest_plot_input
+
 
 forest_plot_input_total <- data.frame(
   Index = (26+1), ## This provides an order to the data
-  label = "Total",
+  label = "All tillage",
   SMD = m.mean$TE.random,
   LL = m.mean$lower.random,
-  UL =  m.mean$upper.random)
+  UL =  m.mean$upper.random,
+  n =  sum(m.mean$n))
 forest_plot_input_total
 
 forest_plot_input <- rbind(forest_plot_input,forest_plot_input_total)
 forest_plot_input
 
-plot1 <- ggplot(forest_plot_input, aes(y = label, x = SMD)) +
+
+meta::forest(m.mean, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean, layout = "JAMA")
+
+### comments - I need to modify data set so that the controls are better represented here.
+### I think this is ok because I am using the natural log .
+### Pull out new total from the results
+
+
+
+forest_plot_input <- forest_plot_input %>% 
+  mutate(label2 = paste0(label, "(", n, ")"))
+forest_plot_input
+forest_plot_input$label2
+str(forest_plot_input)
+
+
+forest_plot_input <- forest_plot_input %>%
+  mutate(label2 = fct_reorder(label2, Index)) %>%
+  arrange(label2)
+
+
+plot1 <- ggplot(forest_plot_input, aes(y = label2, x = SMD)) +
   geom_point(shape = 18, size = 5) +  
   geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
-  #scale_y_continuous(name = "", breaks=1:4, labels = forest_plot_input$label, trans = "reverse") +
-  xlab("SMD (95% CI)") + 
+  xlab("Natural log of yield gain (95% CI)") + 
   ylab(" ") + 
   theme_bw() +
   theme(panel.border = element_blank(),
@@ -101,3 +138,85 @@ plot1 <- ggplot(forest_plot_input, aes(y = label, x = SMD)) +
         axis.text.x.bottom = element_text(size = 12, colour = "black"),
         axis.title.x = element_text(size = 12, colour = "black"))
 plot1
+
+################################################################################
+### Option 2 means ----
+#### using Yield gains mean of the treatments ---
+str(df_modified)
+df_modified_summary_yld_gain <- df_modified %>% group_by(site_display) %>% 
+  summarise(mean = mean(yield_gain, na.rm = TRUE),
+            sd = sd(yield_gain, na.rm = TRUE),
+            n = n())
+
+df_modified_summary_yld_gain
+m.meanYG <- metamean(n = n,
+                   mean = mean,
+                   sd = sd,
+                   studlab = site_display,
+                   data = df_modified_summary_yld_gain,
+                   sm = "MRAW",
+                   fixed = FALSE,
+                   random = TRUE,
+                   method.tau = "REML",
+                   method.random.ci = "HK",
+                   title = "Option 2")
+summary(m.meanYG)
+### home made plots
+dim(df_modified_summary_yld_gain)
+#how many rows of data ?
+forest_plot_input_YG <- data.frame(
+  #Index = seq(1:26), ## This provides an order to the data
+  label = m.meanYG$studlab,
+  SMD = m.meanYG$TE,
+  LL = m.meanYG$lower,
+  UL =  m.meanYG$upper,
+  n = m.meanYG$n)
+
+forest_plot_input_YG
+forest_plot_input_YG <- forest_plot_input_YG %>% arrange(SMD) %>% 
+  dplyr::mutate(Index = seq(1:26))
+forest_plot_input_YG
+
+
+forest_plot_input_total_YG <- data.frame(
+  Index = (26+1), ## This provides an order to the data
+  label = "All tillage",
+  SMD = m.meanYG$TE.random,
+  LL = m.meanYG$lower.random,
+  UL =  m.meanYG$upper.random,
+  n =  sum(m.meanYG$n))
+forest_plot_input_total_YG
+
+forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
+forest_plot_input_YG
+
+
+
+forest_plot_input_YG <- forest_plot_input_YG %>% 
+  mutate(label2 = paste0(label, "(", n, ")"))
+forest_plot_input_YG
+forest_plot_input_YG$label2
+str(forest_plot_input_YG)
+
+
+forest_plot_input_YG <- forest_plot_input_YG %>%
+  mutate(label2 = fct_reorder(label2, Index)) %>%
+  arrange(label2)
+
+
+plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
+  geom_point(shape = 18, size = 5) +  
+  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  xlab("Yield gain (95% CI)") + 
+  ylab(" ") + 
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black"))
+plot2
