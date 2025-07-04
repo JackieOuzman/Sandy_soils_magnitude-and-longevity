@@ -65,6 +65,8 @@ m.mean <- metamean(n = n,
                    title = "Option 2")
 summary(m.mean)
 
+mean_transfomred <- (0.321 -1) * (100/100)
+
 ### I can plot this a more manual way but I need to export some data from the analysis
 
 dim(df_modified_summary)
