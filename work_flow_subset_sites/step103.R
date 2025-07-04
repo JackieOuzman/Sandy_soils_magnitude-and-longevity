@@ -8,6 +8,9 @@ library(tidyverse)
 library(stringr)
 library(ggpubr)
 library(nlme)
+library(dmetar)
+library(tidyverse)
+library(meta)
 
 #The data has been manipulated in "Analysis for sandy soils conf 2025 version 2.rmd
 # With the output as 
