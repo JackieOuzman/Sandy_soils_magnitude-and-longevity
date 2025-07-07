@@ -640,5 +640,8 @@ df_tillage <- df_tillage %>% filter(yield >= 0.07 ,control_yield >= 0.07)
 ##############################################################################
 ## write out files for the next steps
 
+names(df)
+names(df_tillage)
+
 write_csv(df,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints.csv" )
 write_csv(df_tillage,"N:/sandy soils conference/data/data for SS prestenation/control_metadata_contraints_tillage_only.csv" )
