@@ -25,6 +25,7 @@ df_modified <- df %>%
          year,
          yield_gain,
          yield,
+         relative_yld_change,
          control_yield,
          tillage_amendments_class,
          tillage_class,
@@ -62,9 +63,10 @@ df_modified <- df_modified %>%
 
 df_modified_summary_yld_gain_Phy <- df_modified %>% 
   group_by(Physical_name1) %>% 
-  summarise(mean = mean(yield_gain, na.rm = TRUE),
-            sd = sd(yield_gain, na.rm = TRUE),
-            n = n()) 
+  summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+            sd = sd(relative_yld_change, na.rm = TRUE),
+            n = n(),
+            SE = sd/sqrt(n)) 
 
 df_modified_summary_yld_gain_Phy$Physical_name1 <- factor(df_modified_summary_yld_gain_Phy$Physical_name1,
                                                           levels = c("0","1","2"),
@@ -73,164 +75,35 @@ df_modified_summary_yld_gain_Phy$Physical_name1 <- factor(df_modified_summary_yl
 
 
 df_modified_summary_yld_gain_Phy
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = Physical_name1,
-                     data = df_modified_summary_yld_gain_Phy,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_Phy)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
-
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  #arrange(SMD) %>% 
-  dplyr::mutate(Index = seq(1:3))
-forest_plot_input_YG
 
 
-forest_plot_input_total_YG <- data.frame(
-  Index = (3+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
-
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
-  mutate(label2 = fct_reorder(label2, Index)) %>%
-  arrange(label2)
-
-
-plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
-  geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
-  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
-  
-  labs(title = "Physical constraints")+ 
-  xlab("Yield gain (95% CI)") + 
-  ylab("") + 
-  xlim(-0.2, 1.2)+
-  theme_bw() +
-  theme(panel.border = element_blank(),
-        panel.background = element_blank(),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.y = element_text(size = 12, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black"))
-
-plot2
 ################################################################################
-## Physical option 1000
-str(df_modified)
-distinct(df_modified,Repellence)
-
-df_modified_summary_yld_gain_Phy <- df_modified %>% 
-  #filter(Physical == 2) %>% 
-  filter(Physical == 1) %>%
-  group_by(tillage_class) %>% 
-  summarise(mean = mean(yield_gain, na.rm = TRUE),
-            sd = sd(yield_gain, na.rm = TRUE),
-            n = n())
-df_modified_summary_yld_gain_Phy
-
-
+## means and Sterror forest plots 
 
 df_modified_summary_yld_gain_Phy
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = tillage_class    ,
-                     data = df_modified_summary_yld_gain_Phy,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_Phy)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
 
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% arrange(SMD) %>% 
-  dplyr::mutate(Index = seq(1:4))
-forest_plot_input_YG
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% 
+  mutate(label2 = paste0(Physical_name1, "(", n, ")"))
+df_modified_summary_yld_gain_Phy
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% arrange() %>% 
+  dplyr::mutate(Index = seq(1:3))
 
-
-forest_plot_input_total_YG <- data.frame(
-  Index = (4+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
-
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>%
   mutate(label2 = fct_reorder(label2, Index)) %>%
-  arrange(label2)
+    arrange(label2)
 
 
-plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
+
+plot2PHY <- df_modified_summary_yld_gain_Phy %>% 
+  filter(Physical_name1 != "No issue") %>% 
+  ggplot( aes(y = label2, x = mean)) +
   geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
-  
-  #labs(title = "Sites with physical constraints rated as severe issue")+
-  labs(title = "Sites with physical constraints rated as moderate issue")+
-  xlab("Yield gain (95% CI)") + 
-  ylab("") + 
-  xlim(-0.2, 1.2)+
+  xlab("Relative yield change (SE)") + 
+  ylab(" ") + 
+  xlim(-10, 100)+
+  labs(title = "Physical constraints")+ 
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -239,9 +112,11 @@ plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 12, colour = "black"),
         axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black"))
-
-plot2
+        axis.title.x = element_text(size = 12, colour = "black") ) 
+#axis.title.x=element_blank(),
+#axis.text.x=element_blank(),
+#axis.ticks.x=element_blank())
+plot2PHY
 
 ################################################################################
 ## Nutrition
@@ -254,82 +129,42 @@ df_modified <- df_modified %>%
 
 df_modified_summary_yld_gain_Nutr <- df_modified %>% 
   group_by(Nutrient_name1) %>% 
-  summarise(mean = mean(yield_gain, na.rm = TRUE),
-            sd = sd(yield_gain, na.rm = TRUE),
-            n = n()) 
+  summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+            sd = sd(relative_yld_change, na.rm = TRUE),
+            n = n(),
+            SE = sd/sqrt(n)) 
 
 df_modified_summary_yld_gain_Nutr$Nutrient_name1 <- factor(df_modified_summary_yld_gain_Nutr$Nutrient_name1,
                                                           levels = c("0","1","2"),
                                                           labels = c("No issue", "Moderate issue","Severe issue" ))
 
 
-
 df_modified_summary_yld_gain_Nutr
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = Nutrient_name1,
-                     data = df_modified_summary_yld_gain_Nutr,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_Phy)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
 
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  #arrange(SMD) %>% 
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% 
+  mutate(label2 = paste0(Nutrient_name1, "(", n, ")"))
+df_modified_summary_yld_gain_Nutr
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% arrange() %>% 
   dplyr::mutate(Index = seq(1:3))
-forest_plot_input_YG
 
-
-forest_plot_input_total_YG <- data.frame(
-  Index = (3+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
-
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>%
   mutate(label2 = fct_reorder(label2, Index)) %>%
   arrange(label2)
 
+df_modified_summary_yld_gain_Nutr
 
-plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
+
+plot2 <- df_modified_summary_yld_gain_Nutr %>% 
+  filter(Nutrient_name1 != "No issue") %>%
+  ggplot( aes(y = label2, x = mean    )) +
   geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   
   labs(title = "Nutrition constraints")+ 
-  xlab("Yield gain (95% CI)") + 
+  xlab("Realtive yield change (SE)") + 
   ylab("") + 
-  xlim(-0.2, 1.2)+
+  xlim(-10, 100)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -341,6 +176,8 @@ plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
         axis.title.x = element_text(size = 12, colour = "black"))
 
 plot2
+df_modified_summary_yld_gain_Nutr
+df_modified_summary_yld_gain_Phy
 ################################################################################
 ## nutrients option 1000
 str(df_modified)
@@ -350,79 +187,94 @@ df_modified_summary_yld_gain_Nutr <- df_modified %>%
   #filter(Nutrient == 2) %>% 
   filter(Nutrient == 1) %>%
   group_by(tillage_class) %>% 
-  summarise(mean = mean(yield_gain, na.rm = TRUE),
-            sd = sd(yield_gain, na.rm = TRUE),
-            n = n())
+  summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+            sd = sd(relative_yld_change, na.rm = TRUE),
+            n = n(),
+            SE = sd/sqrt(n)) 
 df_modified_summary_yld_gain_Nutr
 
-
-
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% 
+  mutate(label2 = paste0(tillage_class, "(", n, ")"))
 df_modified_summary_yld_gain_Nutr
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = tillage_class    ,
-                     data = df_modified_summary_yld_gain_Nutr,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_Phy)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
-
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% arrange(SMD) %>% 
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% arrange(mean) %>% 
   dplyr::mutate(Index = seq(1:3))
-forest_plot_input_YG
 
-
-forest_plot_input_total_YG <- data.frame(
-  Index = (3+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
-
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>%
   mutate(label2 = fct_reorder(label2, Index)) %>%
   arrange(label2)
 
+df_modified_summary_yld_gain_Nutr
 
-plot2 <- ggplot(forest_plot_input_YG, aes(y = label2, x = SMD)) +
+
+
+
+plot2 <- df_modified_summary_yld_gain_Nutr %>% 
+  ggplot( aes(y = label2, x = mean  )) +
   geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_errorbarh(aes(xmin = mean-SE , xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   
   #labs(title = "Sites with nutrition constraints rated as severe issue")+
   labs(title = "Sites with nutrition constraints rated as moderate issue")+
-  xlab("Yield gain (95% CI)") + 
+  xlab("Relative yield change (SE)") + 
   ylab("") + 
-  xlim(-0.2, 1.2)+
+  xlim(-10, 150)+
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black"))
+
+plot2
+
+
+
+################################################################################
+## Physical option 1000
+#
+str(df_modified)
+distinct(df_modified,Physical)
+
+df_modified_summary_yld_gain_Phy <- df_modified %>% 
+  filter(Physical == 2) %>% 
+  #filter(Physical == 1) %>%
+  group_by(tillage_class) %>% 
+  summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+            sd = sd(relative_yld_change, na.rm = TRUE),
+            n = n(),
+            SE = sd/sqrt(n)) 
+df_modified_summary_yld_gain_Phy
+
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% 
+  mutate(label2 = paste0(tillage_class, "(", n, ")"))
+df_modified_summary_yld_gain_Phy
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% arrange(mean) %>% 
+  dplyr::mutate(Index = seq(1:4))
+
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>%
+  mutate(label2 = fct_reorder(label2, Index)) %>%
+  arrange(label2)
+
+df_modified_summary_yld_gain_Phy
+
+
+
+
+plot2 <- df_modified_summary_yld_gain_Phy %>% 
+  ggplot( aes(y = label2, x = mean  )) +
+  geom_point(shape = 18, size = 5) +  
+  geom_errorbarh(aes(xmin = mean-SE , xmax = mean+SE), height = 0.25) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  
+  #labs(title = "Sites with phyical constraints rated as severe issue")+
+  labs(title = "Sites with phyical constraints rated as moderate issue")+
+  xlab("Relative yield change (SE)") + 
+  ylab("") + 
+  xlim(-10, 150)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
