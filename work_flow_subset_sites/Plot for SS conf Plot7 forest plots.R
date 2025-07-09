@@ -25,6 +25,7 @@ df_modified <- df %>%
          year,
          yield_gain,
          yield,
+         relative_yld_change,
          control_yield,
          tillage_amendments_class,
          tillage_class,
@@ -124,7 +125,7 @@ site_season %>%
         legend.title = element_blank())+
   
   xlab("") + 
-  ylab("Precentage of trail years with season type") + 
+  ylab("Precentage of trial years with season type") + 
   labs(title = "",
        caption = "Above average rainfall = decile 8-10, below average = decile 1-3. Decile define as GS rainfall + 25% of summer" ) 
 
@@ -142,9 +143,10 @@ distinct(df_modified,Decile_group )
 
 df_modified_summary_yld_gain_season_Type <- df_modified %>% 
   group_by(Decile_group) %>% 
-  summarise(mean = mean(yield_gain, na.rm = TRUE),
-            sd = sd(yield_gain, na.rm = TRUE),
-            n = n()) 
+  summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+            sd = sd(relative_yld_change, na.rm = TRUE),
+            n = n(),
+            SE = sd/sqrt(n))   
 df_modified_summary_yld_gain_season_Type
 
 df_modified_summary_yld_gain_season_Type$Decile_group <- factor(
@@ -157,75 +159,30 @@ df_modified_summary_yld_gain_season_Type$Decile_group <- factor(
   )
 )
 
-
 df_modified_summary_yld_gain_season_Type
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = Decile_group,
-                     data = df_modified_summary_yld_gain_season_Type,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_season_Type)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
 
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  arrange(SMD) %>% 
+
+
+df_modified_summary_yld_gain_season_Type <- df_modified_summary_yld_gain_season_Type %>% 
+  mutate(label2 = paste0( Decile_group , "(", n, ")"))
+df_modified_summary_yld_gain_season_Type
+
+df_modified_summary_yld_gain_season_Type <- df_modified_summary_yld_gain_season_Type %>% arrange(mean    ) %>% 
   dplyr::mutate(Index = seq(1:3))
-forest_plot_input_YG
-
-
-forest_plot_input_total_YG <- data.frame(
-  Index = (3+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
 
 
 
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
-  mutate(label2 = fct_reorder(label2, Index)) %>%
-  arrange(label2)
-
-
-plot2 <-forest_plot_input_YG %>% 
-  filter(label != "All tillage") %>% 
-  ggplot(aes(y = label2, x = SMD)) +
+plot2b <-df_modified_summary_yld_gain_season_Type %>% 
+  #filter(label != "All tillage") %>% 
+  ggplot(aes(y = label2, x = mean)) +
   geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   
   labs(title = "Years with season rainfall type")+ 
-  xlab("Yield gain (95% CI)") + 
+  xlab("Relative yield change (SE)") + 
   ylab("") + 
-  xlim(-0.2, 1.2)+
+  xlim(-10, 150)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -236,4 +193,5 @@ plot2 <-forest_plot_input_YG %>%
         axis.text.x.bottom = element_text(size = 12, colour = "black"),
         axis.title.x = element_text(size = 12, colour = "black"))
 
-plot2
+plot2b
+df_modified_summary_yld_gain_season_Type
