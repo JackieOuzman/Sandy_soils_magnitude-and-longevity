@@ -88,7 +88,7 @@ site_crop <- site_crop %>%
   mutate(percent_season = n/numb_seasons)
 
 site_crop
-
+unique(site_crop$crop_group)
 
 site_crop$crop_group <- factor(
   site_crop$crop_group,
@@ -96,9 +96,7 @@ site_crop$crop_group <- factor(
   labels = c(
     "Oilseeds",
     "Grain Legumes",
-    "Cereals",
-  )
-)
+    "Cereals"  ))
 site_crop
 
 site_crop %>% 
@@ -132,7 +130,8 @@ df_modified_summary_yld_gain_crop_Type <- df_modified %>%
   group_by(crop_group) %>% 
   summarise(mean = mean(relative_yld_change, na.rm = TRUE),
             sd = sd(relative_yld_change, na.rm = TRUE),
-            n = n()) 
+            n = n(),
+            SE = sd/sqrt(n))    
 df_modified_summary_yld_gain_crop_Type
 
 df_modified_summary_yld_gain_crop_Type$crop_group <- factor(
@@ -144,74 +143,30 @@ df_modified_summary_yld_gain_crop_Type$crop_group <- factor(
     "Cereals"
   )
 )
-
-
 df_modified_summary_yld_gain_crop_Type
-m.meanYG <- metamean(n = n,
-                     mean = mean,
-                     sd = sd,
-                     studlab = crop_group,
-                     data = df_modified_summary_yld_gain_crop_Type,
-                     sm = "MRAW",
-                     fixed = FALSE,
-                     random = TRUE,
-                     method.tau = "REML",
-                     method.random.ci = "HK",
-                     title = "Option 2")
-summary(m.meanYG)
-### home made plots
-dim(df_modified_summary_yld_gain_crop_Type)
-#how many rows of data ?
-forest_plot_input_YG <- data.frame(
-  #Index = seq(1:4), ## This provides an order to the data
-  label = m.meanYG$studlab,
-  SMD = m.meanYG$TE,
-  LL = m.meanYG$lower,
-  UL =  m.meanYG$upper,
-  n = m.meanYG$n)
 
-forest_plot_input_YG
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  arrange(SMD) %>% 
+df_modified_summary_yld_gain_crop_Type <- df_modified_summary_yld_gain_crop_Type %>% 
+  mutate(label2 = paste0( crop_group , "(", n, ")"))
+df_modified_summary_yld_gain_crop_Type
+
+df_modified_summary_yld_gain_crop_Type <- df_modified_summary_yld_gain_crop_Type %>% arrange(mean    ) %>% 
   dplyr::mutate(Index = seq(1:3))
-forest_plot_input_YG
 
-
-forest_plot_input_total_YG <- data.frame(
-  Index = (3+1), ## This provides an order to the data
-  label = "All tillage",
-  SMD = m.meanYG$TE.random,
-  LL = m.meanYG$lower.random,
-  UL =  m.meanYG$upper.random,
-  n =  sum(m.meanYG$n))
-forest_plot_input_total_YG
-
-forest_plot_input_YG <- rbind(forest_plot_input_YG,forest_plot_input_total_YG)
-forest_plot_input_YG
-
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>% 
-  mutate(label2 = paste0(label, "(", n, ")"))
-forest_plot_input_YG
-forest_plot_input_YG$label2
-str(forest_plot_input_YG)
-
-
-forest_plot_input_YG <- forest_plot_input_YG %>%
+df_modified_summary_yld_gain_crop_Type <- df_modified_summary_yld_gain_crop_Type %>%
   mutate(label2 = fct_reorder(label2, Index)) %>%
   arrange(label2)
 
+df_modified_summary_yld_gain_crop_Type
 
-plot2 <-forest_plot_input_YG %>% 
-  filter(label != "All tillage") %>% 
-  ggplot(aes(y = label2, x = SMD)) +
+
+plot2 <-df_modified_summary_yld_gain_crop_Type %>% 
+  ggplot(aes(y = label2, x = mean)) +
   geom_point(shape = 18, size = 5) +  
-  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   
-  labs(title = "Years with crop type")+ 
-  xlab("Relative yield change (95% CI)") + 
+  #labs(title = "Years with crop type")+ 
+  xlab("Relative yield change (SE)") + 
   ylab("") + 
   xlim(0, 100)+
   theme_bw() +
