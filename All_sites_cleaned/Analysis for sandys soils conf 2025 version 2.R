@@ -743,7 +743,7 @@ names(df)
 names(df_tillage)
 
 write_csv(df,"N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints.csv" )
-write_csv(df_tillage,"control_metadata_contraints_tillage_only.csv" )
+write_csv(df_tillage,"N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints_tillage_only.csv" )
 
 
 ###############################################################################
@@ -865,5 +865,5 @@ df_tillage_trimmed <- df_tillage_trimmed %>% select(!starts_with("z_scores"))
 names(df)
 names(df_tillage)
 
-write_csv(df,"N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints.csv" )
-write_csv(df_tillage,"control_metadata_contraints_tillage_only.csv" )
+
+write_csv(df_tillage_trimmed,"N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints_tillage_only_cleaned.csv" )
