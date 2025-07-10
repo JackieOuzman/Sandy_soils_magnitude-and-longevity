@@ -172,7 +172,6 @@ plot2_yld_gain
 ###############################################################################
 #### agricolae_LSD
 
-
 model_sand = lm( relative_yld_change ~ tillage_class,
                  data=df)
 
@@ -180,18 +179,88 @@ agricolae_LSD_output_sand <- (LSD.test(model_sand, "tillage_class",   # outer pa
                                        alpha = 0.1,      
                                        p.adj="none"))      # see ?p.adjust for options"none" is t-student.
 
-
-
 agricolae_LSD_output_sand
 #Extract the LSD value from the anlsysis and add it to the summary data
 
 LSD_value_1 <- agricolae_LSD_output_sand$statistics$LSD #this becomes NULL if there is not values
 LSD_value_1
-
-
 ###############################################################################
 model = lm( relative_yld_change ~ tillage_class,
             data=df)
-
 anova_yld <- Anova(model, type="II") # Can use type="III"
 anova_yld
+
+
+###############################################################################
+
+## meta analysis on tillage
+df_modified_summary
+m.mean <- metamean(n = n,
+                   mean = mean,
+                   sd = sd,
+                   studlab = tillage_class,
+                   data = df_modified_summary,
+                   sm = "MRAW",
+                   fixed = FALSE,
+                   random = TRUE,
+                   method.tau = "REML",
+                   method.random.ci = "HK",
+                   title = "Option 2")
+summary(m.mean)
+
+### I can plot this a more manual way but I need to export some data from the analysis
+
+dim(df_modified_summary)
+#how many rows of data ?
+forest_plot_input <- data.frame(
+  Index = seq(1:5), ## This provides an order to the data
+  label = m.mean$studlab,
+  SMD = m.mean$TE,
+  LL = m.mean$lower,
+  UL =  m.mean$upper)
+forest_plot_input
+
+forest_plot_input_total <- data.frame(
+  Index = (5+1), ## This provides an order to the data
+  label = "Total",
+  SMD = m.mean$TE.random,
+  LL = m.mean$lower.random,
+  UL =  m.mean$upper.random)
+forest_plot_input_total
+
+forest_plot_input <- rbind(forest_plot_input,forest_plot_input_total)
+forest_plot_input
+
+plot1 <- ggplot(forest_plot_input, aes(y = label, x = SMD)) +
+  geom_point(shape = 18, size = 5) +  
+  geom_errorbarh(aes(xmin = LL, xmax = UL), height = 0.25) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  #scale_y_continuous(name = "", breaks=1:4, labels = forest_plot_input$label, trans = "reverse") +
+  xlab("SMD (95% CI)") + 
+  ylab(" ") + 
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 12, colour = "black"))
+plot1
+
+
+df_modified_summary
+m.mean <- metamean(n = n,
+                   mean = mean,
+                   sd = sd,
+                   studlab = tillage_class,
+                   data = df_modified_summary,
+                   sm = "MRAW",
+                   fixed = FALSE,
+                   random = TRUE,
+                   method.tau = "REML",
+                   method.random.ci = "HK",
+                   title = "Option 2")
+summary(m.mean)
+# Then run the meta-regression
