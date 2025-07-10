@@ -26,7 +26,7 @@ df <- read.csv("N:/sandy soils conference/data/All_sites_cleaned/control_metadat
 # keep only one yield output
 str(df)
 df_modified <- df %>% 
-  select(tillage_amendments_class,
+  dplyr::select(tillage_amendments_class,
          tillage_class,
          site_display,
          year,
@@ -42,15 +42,15 @@ df_modified <- df %>%
 str(df_modified)
 ################################################################################
 
-df_modified_summary <- df_modified %>% group_by(tillage_amendments_class) %>% 
-  summarise(n = n(),
+df_modified_summary <- df_modified %>% dplyr::group_by(tillage_amendments_class) %>% 
+  dplyr::summarise(n = n(),
             mean = mean(relative_yld_change,na.rm = TRUE),
             sd = sd(relative_yld_change,na.rm = TRUE),
             SE = sd/sqrt(n) )
 ungroup(df_modified_summary)
 
-df_modified_total <- df_modified %>% group_by() %>%
-  summarise(
+df_modified_total <- df_modified %>% dplyr::group_by() %>%
+  dplyr::summarise(
     n = n(),
     mean = mean(relative_yld_change, na.rm = TRUE),
     sd = sd(relative_yld_change, na.rm = TRUE),
@@ -194,6 +194,14 @@ anova_yld
 ###############################################################################
 
 ## meta analysis on tillage
+df_modified_summary <- df_modified %>% dplyr::group_by(tillage_class) %>% 
+  dplyr::summarise(n = n(),
+            mean = mean(relative_yld_change,na.rm = TRUE),
+            sd = sd(relative_yld_change,na.rm = TRUE),
+            SE = sd/sqrt(n) )
+ungroup(df_modified_summary)
+
+
 df_modified_summary
 m.mean <- metamean(n = n,
                    mean = mean,
@@ -207,6 +215,15 @@ m.mean <- metamean(n = n,
                    method.random.ci = "HK",
                    title = "Option 2")
 summary(m.mean)
+
+meta::forest(m.mean, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean, layout = "JAMA")
+
 
 ### I can plot this a more manual way but I need to export some data from the analysis
 
