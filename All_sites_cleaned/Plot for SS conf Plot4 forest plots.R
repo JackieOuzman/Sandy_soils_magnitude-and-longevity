@@ -155,7 +155,7 @@ plot2 <- df_modified_summary_v2 %>%
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   xlab("Relative yield change (SE)") + 
   ylab(" ") + 
-  xlim(-20, 150)+
+  xlim(-10, 50)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -163,8 +163,8 @@ plot2 <- df_modified_summary_v2 %>%
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 14, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black") ) 
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black") ) 
 #axis.title.x=element_blank(),
 #axis.text.x=element_blank(),
 #axis.ticks.x=element_blank())
@@ -241,7 +241,7 @@ plot2 <- df_modified_summary_v2 %>%
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   xlab("Relative yield change (SE)") + 
   ylab(" ") + 
-  xlim(-20, 150)+
+  xlim(-10, 50)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -249,8 +249,8 @@ plot2 <- df_modified_summary_v2 %>%
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 14, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black") ) 
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black") ) 
 #axis.title.x=element_blank(),
 #axis.text.x=element_blank(),
 #axis.ticks.x=element_blank())

@@ -307,12 +307,29 @@ df_modified_summary_yld_gain_Nutr_Phyical <- rbind(
   df_modified_summary_yld_gain_Phy_mod,
   df_modified_summary_yld_gain_Nutr_mod
 )
+## Add some more helper clm for plotting
+df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
+  dplyr::mutate(helper_tillage = case_when(
+    grouping == "Phy_ser" ~ "Physical",
+    grouping == "Phy_mod" ~ "Physical",
+    grouping == "Nutr_Ser" ~ "Nutrient",
+    grouping == "Nutr_mod" ~ "Nutrient",
+    .default = "check"
+  ))
+df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
+  dplyr::mutate(label3 = paste0(label2, "-", helper_tillage) )
+
+
+## Arrange data for plotting
+df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_Phyical %>%
+  dplyr::mutate(label3 = fct_reorder(label3, helper_tillage)) %>%
+  dplyr::arrange(label3)
 df_modified_summary_yld_gain_Nutr_Phyical
 
 plot2 <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
   filter(grouping == "Phy_ser" | grouping == "Nutr_Ser") %>% 
   
-  ggplot( aes(y = label2, x = mean  )) +
+  ggplot( aes(y = label3, x = mean  )) +
   geom_point(shape = 18, size = 6) +  
   geom_errorbarh(aes(xmin = mean-SE , xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
@@ -328,18 +345,22 @@ plot2 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
-        axis.text.y = element_text(size = 12, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
         axis.title.x = element_text(size = 12, colour = "black"),
         title = element_text(size = 14, colour = "black")) 
 
+
+plot2
+df_modified_summary_yld_gain_Nutr_Phyical %>% 
+  filter(grouping == "Phy_ser" | grouping == "Nutr_Ser")
 
 
 
 plot3 <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
   filter(grouping == "Phy_mod" | grouping == "Nutr_mod") %>% 
   
-  ggplot( aes(y = label2, x = mean  )) +
+  ggplot( aes(y = label3, x = mean  )) +
   geom_point(shape = 18, size = 6) +  
   geom_errorbarh(aes(xmin = mean-SE , xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
@@ -355,9 +376,9 @@ plot3 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
-        axis.text.y = element_text(size = 12, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black"),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black"),
         title = element_text(size = 14, colour = "black")) 
 
 
