@@ -106,8 +106,8 @@ plot2PHY <- df_modified_summary_yld_gain_Phy %>%
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 14, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black") ,
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black") ,
         title = element_text(size = 14, colour = "black")) 
 #axis.title.x=element_blank(),
 #axis.text.x=element_blank(),
@@ -168,8 +168,8 @@ plot2 <- df_modified_summary_yld_gain_Nutr %>%
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 14, colour = "black"),
-        axis.text.x.bottom = element_text(size = 12, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black"),
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black"),
         title = element_text(size = 14, colour = "black")) 
 
 plot2
@@ -347,7 +347,7 @@ plot2 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
         axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 14, colour = "black"),
         axis.text.x.bottom = element_text(size = 14, colour = "black"),
-        axis.title.x = element_text(size = 12, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black"),
         title = element_text(size = 14, colour = "black")) 
 
 
@@ -379,7 +379,7 @@ plot3 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
         axis.text.y = element_text(size = 14, colour = "black"),
         axis.text.x.bottom = element_text(size = 14, colour = "black"),
         axis.title.x = element_text(size = 14, colour = "black"),
-        title = element_text(size = 14, colour = "black")) 
+                title = element_text(size = 14, colour = "black"))  
 
 
 plot3
