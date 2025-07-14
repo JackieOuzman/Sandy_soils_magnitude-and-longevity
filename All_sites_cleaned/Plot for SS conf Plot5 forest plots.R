@@ -53,17 +53,17 @@ str(df_modified)
 distinct(df_modified,Physical )
 
 df_modified <- df_modified %>% 
-  mutate(Physical_name1 = as.character(Physical))
+  mutate(Rating_Phy = as.character(Physical))
 
 
 df_modified_summary_yld_gain_Phy <- df_modified %>% 
-  dplyr::group_by(Physical_name1) %>% 
+  dplyr::group_by(Rating_Phy) %>% 
   dplyr::summarise(mean = mean(relative_yld_change, na.rm = TRUE),
             sd = sd(relative_yld_change, na.rm = TRUE),
             n = n(),
             SE = sd/sqrt(n)) 
 
-df_modified_summary_yld_gain_Phy$Physical_name1 <- factor(df_modified_summary_yld_gain_Phy$Physical_name1,
+df_modified_summary_yld_gain_Phy$Rating_Phy <- factor(df_modified_summary_yld_gain_Phy$Rating_Phy,
                                                           levels = c("0","1","2"),
                                                           labels = c("No issue", "Moderate issue","Severe issue" ))
 
@@ -78,7 +78,7 @@ df_modified_summary_yld_gain_Phy
 df_modified_summary_yld_gain_Phy
 
 df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% 
-  mutate(label2 = paste0(Physical_name1, "(", n, ")"))
+  mutate(label2 = paste0(Rating_Phy, "(", n, ")"))
 df_modified_summary_yld_gain_Phy
 df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% dplyr::arrange() %>% 
   dplyr::mutate(Index = seq(1:3))
@@ -90,14 +90,14 @@ df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>%
 
 
 plot2PHY <- df_modified_summary_yld_gain_Phy %>% 
-  filter(Physical_name1 != "No issue") %>% 
+  filter(Rating_Phy != "No issue") %>% 
   ggplot( aes(y = label2, x = mean)) +
   geom_point(shape = 18, size = 6) +  
   geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
   xlab("Relative yield change (SE)") + 
   ylab(" ") + 
-  xlim(-10, 50)+
+  xlim(-10, 70)+
   labs(title = "Physical constraints" )+ 
   theme_bw() +
   theme(panel.border = element_blank(),
@@ -120,17 +120,17 @@ str(df_modified)
 distinct(df_modified,Nutrient )
 
 df_modified <- df_modified %>% 
-  mutate(Nutrient_name1 = as.character(Nutrient))
+  mutate(Rating_N = as.character(Nutrient))
 
 
 df_modified_summary_yld_gain_Nutr <- df_modified %>% 
-  dplyr::group_by(Nutrient_name1) %>% 
+  dplyr::group_by(Rating_N) %>% 
   dplyr::summarise(mean = mean(relative_yld_change, na.rm = TRUE),
             sd = sd(relative_yld_change, na.rm = TRUE),
             n = n(),
             SE = sd/sqrt(n)) 
 
-df_modified_summary_yld_gain_Nutr$Nutrient_name1 <- factor(df_modified_summary_yld_gain_Nutr$Nutrient_name1,
+df_modified_summary_yld_gain_Nutr$Rating_N <- factor(df_modified_summary_yld_gain_Nutr$Rating_N,
                                                           levels = c("0","1","2"),
                                                           labels = c("No issue", "Moderate issue","Severe issue" ))
 
@@ -138,7 +138,7 @@ df_modified_summary_yld_gain_Nutr$Nutrient_name1 <- factor(df_modified_summary_y
 df_modified_summary_yld_gain_Nutr
 
 df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% 
-  dplyr::mutate(label2 = paste0(Nutrient_name1, "(", n, ")"))
+  dplyr::mutate(label2 = paste0(Rating_N, "(", n, ")"))
 df_modified_summary_yld_gain_Nutr
 df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% dplyr::arrange() %>% 
   dplyr::mutate(Index = seq(1:3))
@@ -151,7 +151,7 @@ df_modified_summary_yld_gain_Nutr
 
 
 plot2 <- df_modified_summary_yld_gain_Nutr %>% 
-  filter(Nutrient_name1 != "No issue") %>%
+  filter(Rating_N != "No issue") %>%
   ggplot( aes(y = label2, x = mean    )) +
   geom_point(shape = 18, size = 6) +  
   geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
@@ -160,7 +160,7 @@ plot2 <- df_modified_summary_yld_gain_Nutr %>%
   labs(title = "Nutrition constraints")+ 
   xlab("Realtive yield change (SE)") + 
   ylab("") + 
-  xlim(-10, 50)+
+  xlim(-10, 70)+
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
@@ -175,6 +175,113 @@ plot2 <- df_modified_summary_yld_gain_Nutr %>%
 plot2
 df_modified_summary_yld_gain_Nutr
 df_modified_summary_yld_gain_Phy
+################################################################################
+## Repellence
+str(df_modified)
+distinct(df_modified,Repellence )
+
+df_modified <- df_modified %>% 
+  mutate(Rating_R = as.character(Repellence))
+
+
+df_modified_summary_yld_gain_Repl <- df_modified %>% 
+  dplyr::group_by(Rating_R) %>% 
+  dplyr::summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+                   sd = sd(relative_yld_change, na.rm = TRUE),
+                   n = n(),
+                   SE = sd/sqrt(n)) 
+
+df_modified_summary_yld_gain_Repl$Rating_R <- factor(df_modified_summary_yld_gain_Repl$Rating_R,
+                                                           levels = c("0","1","2"),
+                                                           labels = c("No issue", "Moderate issue","Severe issue" ))
+
+
+df_modified_summary_yld_gain_Repl
+
+df_modified_summary_yld_gain_Repl <- df_modified_summary_yld_gain_Repl %>% 
+  dplyr::mutate(label2 = paste0(Rating_R, "(", n, ")"))
+df_modified_summary_yld_gain_Repl
+df_modified_summary_yld_gain_Repl <- df_modified_summary_yld_gain_Repl %>% dplyr::arrange() %>% 
+  dplyr::mutate(Index = seq(1:3))
+
+df_modified_summary_yld_gain_Repl <- df_modified_summary_yld_gain_Repl %>%
+  mutate(label2 = fct_reorder(label2, Index)) %>%
+  arrange(label2)
+
+df_modified_summary_yld_gain_Repl
+
+
+plot3 <- df_modified_summary_yld_gain_Repl %>% 
+  filter(Rating_R != "No issue") %>%
+  ggplot( aes(y = label2, x = mean    )) +
+  geom_point(shape = 18, size = 6) +  
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  
+  labs(title = "Repellence constraints")+ 
+  xlab("Realtive yield change (SE)") + 
+  ylab("") + 
+  xlim(-10, 70)+
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black"),
+        title = element_text(size = 14, colour = "black")) 
+
+plot3
+df_modified_summary_yld_gain_Nutr <- df_modified_summary_yld_gain_Nutr %>% mutate(constraint ="Nutrient" ) %>% 
+  rename("Rating" = "Rating_N")
+df_modified_summary_yld_gain_Phy <- df_modified_summary_yld_gain_Phy %>% mutate(constraint ="Physical" ) %>% 
+  rename("Rating" = "Rating_Phy")
+df_modified_summary_yld_gain_Repl <- df_modified_summary_yld_gain_Repl %>% mutate(constraint ="Repellence" ) %>% 
+  rename("Rating" = "Rating_R")
+
+
+df_modified_summary_yld_gain_Nutr_Ph_Rep <- rbind(df_modified_summary_yld_gain_Nutr, 
+                                                  df_modified_summary_yld_gain_Phy,
+                                                  df_modified_summary_yld_gain_Repl)
+
+df_modified_summary_yld_gain_Nutr_Ph_Rep
+
+
+df_modified_summary_yld_gain_Nutr_Ph_Rep <- df_modified_summary_yld_gain_Nutr_Ph_Rep %>% 
+  dplyr::mutate(label3 = paste0(constraint, " with " ,Rating, "(", n, ")"))
+
+###############################################################################
+plot4 <- df_modified_summary_yld_gain_Nutr_Ph_Rep %>% 
+  filter(Rating != "No issue") %>%
+  ggplot( aes(y = label3, x = mean    )) +
+  geom_point(shape = 18, size = 6) +  
+  geom_errorbarh(aes(xmin = mean-SE, xmax = mean+SE), height = 0.25) +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", cex = 1, alpha = 0.5) +
+  
+  labs(title = "")+ 
+  xlab("Realtive yield change (SE)") + 
+  ylab("") + 
+  xlim(-10, 70)+
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 14, colour = "black"),
+        axis.text.x.bottom = element_text(size = 14, colour = "black"),
+        axis.title.x = element_text(size = 14, colour = "black"),
+        title = element_text(size = 14, colour = "black")) 
+
+plot4
+
+
+df_modified_summary_yld_gain_Nutr_Ph_Rep %>% 
+  filter(Rating != "No issue")
+
+
 ################################################################################
 ## nutrients option 1000
 str(df_modified)
@@ -289,31 +396,96 @@ df_modified_summary_yld_gain_Phy_ser <- df_modified_summary_yld_gain_Phy_ser %>%
 df_modified_summary_yld_gain_Phy_ser
 
 ################################################################################
+## Repllency option 1000
+#
+str(df_modified)
+distinct(df_modified,Repellence)
+
+df_modified_summary_yld_gain_Rep_ser <- df_modified %>% 
+  filter(Repellence == 2) %>% 
+  dplyr::group_by(tillage_class) %>% 
+  dplyr::summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+                   sd = sd(relative_yld_change, na.rm = TRUE),
+                   n = n(),
+                   SE = sd/sqrt(n)) 
+df_modified_summary_yld_gain_Rep_ser
+
+df_modified_summary_yld_gain_Rep_ser <- df_modified_summary_yld_gain_Rep_ser %>% 
+  dplyr::mutate(label2 = paste0(tillage_class, "(", n, ")"))
+df_modified_summary_yld_gain_Rep_ser
+df_modified_summary_yld_gain_Rep_ser <- df_modified_summary_yld_gain_Rep_ser %>% dplyr::arrange(mean) %>% 
+  dplyr::mutate(Index = seq(1:2))
+
+df_modified_summary_yld_gain_Rep_ser <- df_modified_summary_yld_gain_Rep_ser %>%
+  dplyr::mutate(label2 = fct_reorder(label2, Index)) %>%
+  dplyr::arrange(label2)
+
+df_modified_summary_yld_gain_Rep_ser
+
+################################################################################
+## Repllency option 1000
+#
+str(df_modified)
+distinct(df_modified,Repellence)
+
+df_modified_summary_yld_gain_Rep_mod <- df_modified %>% 
+  filter(Repellence == 1) %>%
+  dplyr::group_by(tillage_class) %>% 
+  dplyr::summarise(mean = mean(relative_yld_change, na.rm = TRUE),
+                   sd = sd(relative_yld_change, na.rm = TRUE),
+                   n = n(),
+                   SE = sd/sqrt(n)) 
+df_modified_summary_yld_gain_Rep_mod
+
+df_modified_summary_yld_gain_Rep_mod <- df_modified_summary_yld_gain_Rep_mod %>% 
+  dplyr::mutate(label2 = paste0(tillage_class, "(", n, ")"))
+df_modified_summary_yld_gain_Rep_mod
+df_modified_summary_yld_gain_Rep_mod <- df_modified_summary_yld_gain_Rep_mod %>% dplyr::arrange(mean) %>% 
+  dplyr::mutate(Index = seq(1:4))
+
+df_modified_summary_yld_gain_Rep_mod <- df_modified_summary_yld_gain_Rep_mod %>%
+  dplyr::mutate(label2 = fct_reorder(label2, Index)) %>%
+  dplyr::arrange(label2)
+
+df_modified_summary_yld_gain_Rep_mod
+
+
+################################################################################
 #Put all of these together
 
 df_modified_summary_yld_gain_Phy_ser <- df_modified_summary_yld_gain_Phy_ser %>% 
   dplyr::mutate(grouping = "Phy_ser")
 df_modified_summary_yld_gain_Nutr_Ser<- df_modified_summary_yld_gain_Nutr_Ser %>% 
   dplyr::mutate(grouping = "Nutr_Ser")
+df_modified_summary_yld_gain_Rep_ser<- df_modified_summary_yld_gain_Rep_ser %>% 
+  dplyr::mutate(grouping = "Rep_Ser")
 
 df_modified_summary_yld_gain_Phy_mod<- df_modified_summary_yld_gain_Phy_mod %>% 
   dplyr::mutate(grouping = "Phy_mod")
 df_modified_summary_yld_gain_Nutr_mod<- df_modified_summary_yld_gain_Nutr_mod %>% 
   dplyr::mutate(grouping = "Nutr_mod")
+df_modified_summary_yld_gain_Rep_mod<- df_modified_summary_yld_gain_Rep_mod %>% 
+  dplyr::mutate(grouping = "Rep_mod")
+
 
 df_modified_summary_yld_gain_Nutr_Phyical <- rbind(
   df_modified_summary_yld_gain_Phy_ser,
   df_modified_summary_yld_gain_Nutr_Ser,
+  df_modified_summary_yld_gain_Rep_ser,
   df_modified_summary_yld_gain_Phy_mod,
-  df_modified_summary_yld_gain_Nutr_mod
+  df_modified_summary_yld_gain_Nutr_mod,
+  df_modified_summary_yld_gain_Rep_mod
 )
 ## Add some more helper clm for plotting
 df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
   dplyr::mutate(helper_tillage = case_when(
     grouping == "Phy_ser" ~ "Physical",
     grouping == "Phy_mod" ~ "Physical",
+    grouping == "Rep_Ser" ~ "Repllence",
     grouping == "Nutr_Ser" ~ "Nutrient",
     grouping == "Nutr_mod" ~ "Nutrient",
+    grouping == "Rep_mod" ~ "Repllence",
+    
     .default = "check"
   ))
 df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
@@ -327,7 +499,7 @@ df_modified_summary_yld_gain_Nutr_Phyical <- df_modified_summary_yld_gain_Nutr_P
 df_modified_summary_yld_gain_Nutr_Phyical
 
 plot2 <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
-  filter(grouping == "Phy_ser" | grouping == "Nutr_Ser") %>% 
+  filter(grouping == "Phy_ser" | grouping == "Nutr_Ser"| grouping == "Rep_Ser") %>% 
   
   ggplot( aes(y = label3, x = mean  )) +
   geom_point(shape = 18, size = 6) +  
@@ -353,12 +525,12 @@ plot2 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
 
 plot2
 df_modified_summary_yld_gain_Nutr_Phyical %>% 
-  filter(grouping == "Phy_ser" | grouping == "Nutr_Ser")
+  filter(grouping == "Phy_ser" | grouping == "Nutr_Ser"| grouping == "Rep_Ser")
 
 
 
 plot3 <- df_modified_summary_yld_gain_Nutr_Phyical %>% 
-  filter(grouping == "Phy_mod" | grouping == "Nutr_mod") %>% 
+  filter(grouping == "Phy_mod" | grouping == "Nutr_mod" | grouping == "Rep_mod") %>% 
   
   ggplot( aes(y = label3, x = mean  )) +
   geom_point(shape = 18, size = 6) +  
@@ -384,4 +556,4 @@ plot3 <- df_modified_summary_yld_gain_Nutr_Phyical %>%
 
 plot3
 df_modified_summary_yld_gain_Nutr_Phyical %>% 
-  filter(grouping == "Phy_mod" | grouping == "Nutr_mod")
+  filter(grouping == "Phy_mod" | grouping == "Nutr_mod" | grouping == "Rep_mod")
