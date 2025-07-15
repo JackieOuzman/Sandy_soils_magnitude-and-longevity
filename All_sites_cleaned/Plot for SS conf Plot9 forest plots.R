@@ -326,3 +326,58 @@ plot2_new <-df_modified_summary_yld_gain_post_tillage_join %>%
 
 plot2_new
 df_modified_summary_yld_gain_post_tillage_join
+
+
+
+################################################################################
+### try and create a response curve
+
+## sites with repellent rate 1 or 2
+str(df)
+df_modified_1 <- df %>% 
+  select(tillage_amendments_class,
+         site_display,
+         year,
+         #yield_gain,
+         relative_yld_change,
+         #
+         tillage_amendments_class,
+         tillage_class,
+         Physical,
+         Nutrient,
+         Acidity,
+         Repellence,
+         # rain,
+         # crop,
+         # decile, 
+         yr_post_amelioration,
+         amendments_no_amend,
+         post_tillage_group
+         
+  ) %>% 
+  dplyr::mutate(site_year = paste0(site_display,"_", year)) %>% 
+  filter(tillage_amendments_class != "Unmodified_amendment")
+str(df_modified_1)
+
+test <- df_modified_1 %>% 
+  filter(Repellence == 1 |Repellence == 2 ) %>% 
+  filter(tillage_class == "Mixing") 
+
+ 
+df_modified_1 %>%
+  filter(Repellence == 1 | Repellence == 2) %>%
+  filter(tillage_class == "Mixing")  %>%
+  ggplot(
+    aes(
+      x = yr_post_amelioration,
+      relative_yld_change,
+      group = yr_post_amelioration ,
+      #group = site_display ,
+      fill = post_tillage_group
+    )
+  ) +
+  geom_point() +
+  geom_boxplot(alpha = 0.1) +
+  facet_wrap(.~ site_display)
+  #facet_wrap(. ~ Repellence)
+  #facet_wrap(.~ amendments_no_amend)

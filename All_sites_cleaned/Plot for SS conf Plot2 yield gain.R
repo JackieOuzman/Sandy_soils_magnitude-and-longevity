@@ -13,6 +13,10 @@ library(Rmisc)
 library(car)
 library(DescTools)
 
+library(dmetar)
+library(tidyverse)
+library(meta)
+
 
 ## plot and analsyis for preso
 
@@ -65,7 +69,7 @@ df_modified_summary
 df_modified_summary$tillage_amendments_class <- factor(df_modified_summary$tillage_amendments_class, 
                                                        levels = c(
                                                          "Total",
-                                                         "Inversion_no_amendment",
+                                                         #"Inversion_no_amendment",
                                                          "Combination_no_amendment",
                                                          "Combination_amendment",
                                                          "Mixing_no_amendment", 
@@ -75,7 +79,7 @@ df_modified_summary$tillage_amendments_class <- factor(df_modified_summary$tilla
                                                          ),
                                                        labels = c(
                                                          "All tillage",
-                                                         "Inversion only",
+                                                         #"Inversion only",
                                                          "Combination only",
                                                          "Combination with amendment", 
                                                          "Mixing only",
@@ -110,15 +114,15 @@ plot2_yld_gain
 
 #################################################################################
 str(df_modified)
-df_modified_summary <- df_modified %>% group_by(tillage_class) %>% 
-  summarise(n = n(),
+df_modified_summary <- df_modified %>% dplyr::group_by(tillage_class) %>% 
+  dplyr::summarise(n = n(),
             mean = mean(relative_yld_change,na.rm = TRUE),
             sd = sd(relative_yld_change,na.rm = TRUE),
             SE = sd/sqrt(n) )
 ungroup(df_modified_summary)
 
-df_modified_total <- df_modified %>% group_by() %>%
-  summarise(
+df_modified_total <- df_modified %>% dplyr::group_by() %>%
+  dplyr::summarise(
     n = n(),
     mean = mean(relative_yld_change, na.rm = TRUE),
     sd = sd(relative_yld_change, na.rm = TRUE),
@@ -133,14 +137,14 @@ arrange (df_modified_summary , mean)
 df_modified_summary$tillage_class <- factor(df_modified_summary$tillage_class, 
                                                        levels = c(
                                                          "Total",
-                                                         "Inversion",
+                                                        # "Inversion",
                                                          "Combination",
                                                          "Ripping",
                                                          "Mixing" 
                                                        ),
                                                        labels = c(
                                                          "Total",
-                                                         "Inversion",
+                                                        # "Inversion",
                                                          "Combination",
                                                          "Ripping", 
                                                          "Mixing" 
@@ -164,7 +168,7 @@ plot2_yld_gain <- df_modified_summary %>%
         legend.title = element_blank(),
         legend.position = "none")+
   xlab("") +
-  ylab("Relative yield change") #+
+  ylab("Mean relative yield change (+/- standard error)") #+
 #labs(title = " gain above the control for tillage treatments")
 plot2_yld_gain
 

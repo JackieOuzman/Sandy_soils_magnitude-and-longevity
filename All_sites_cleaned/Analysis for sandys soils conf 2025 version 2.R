@@ -79,7 +79,6 @@ str(df)
 
 df <- df %>% select(-join_1)
 
-################################################################################
 # double check the sites ----------------------------------------
 names(df)
 
@@ -544,6 +543,14 @@ df <- df %>%
 amendments_grouping_check <- df %>% distinct(tillage_amendments_class, .keep_all = TRUE) %>% 
   select(tillage_amendments_class, tillage_class, amendments_no_amend )
 amendments_grouping_check
+
+###############################################################################
+### try removing inversions tillage
+names(df)
+
+df <- df %>% filter(tillage_class!= "Inversion")
+
+################################################################################
 
 
 
