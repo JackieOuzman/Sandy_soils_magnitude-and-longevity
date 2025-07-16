@@ -16,7 +16,8 @@ library(forcats)
 
 df <- read.csv("N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints_tillage_only_cleaned.csv" )
 
-
+unique(df$crop_group)
+unique(df$tillage_class)
 # keep only one yield output
 str(df)
 names(df)
@@ -61,6 +62,106 @@ m.mean <- metamean(n = n,
                    method.random.ci = "HK",
                    title = "Option 2")
 summary(m.mean)
+meta::forest(m.mean, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean, layout = "JAMA")
+
+################################################################################
+### Just for mixing tillage 
+################################################################################
+df_modified_summary_mix <- df_modified %>% 
+  dplyr::filter(tillage_class == "Mixing") %>% 
+  dplyr::group_by(site_display) %>% 
+  dplyr::summarise(mean = mean( relative_yld_change, na.rm = TRUE),
+                   sd = sd( relative_yld_change, na.rm = TRUE),
+                   n = n())
+
+df_modified_summary_mix
+m.mean_mix <- metamean(n = n,
+                   mean = mean,
+                   sd = sd,
+                   studlab = site_display,
+                   data = df_modified_summary_mix,
+                   sm = "MRAW",
+                   fixed = FALSE,
+                   random = TRUE,
+                   method.tau = "REML",
+                   method.random.ci = "HK",
+                   title = "Option 2")
+summary(m.mean_mix)
+meta::forest(m.mean_mix, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean_mix, layout = "JAMA")
+
+################################################################################
+### Just for ripping tillage 
+################################################################################
+df_modified_summary_rip <- df_modified %>% 
+  dplyr::filter(tillage_class == "Ripping") %>% 
+  dplyr::group_by(site_display) %>% 
+  dplyr::summarise(mean = mean( relative_yld_change, na.rm = TRUE),
+                   sd = sd( relative_yld_change, na.rm = TRUE),
+                   n = n())
+
+df_modified_summary_rip
+m.mean_rip <- metamean(n = n,
+                       mean = mean,
+                       sd = sd,
+                       studlab = site_display,
+                       data = df_modified_summary_rip,
+                       sm = "MRAW",
+                       fixed = FALSE,
+                       random = TRUE,
+                       method.tau = "REML",
+                       method.random.ci = "HK",
+                       title = "Option 2")
+summary(m.mean_rip)
+meta::forest(m.mean_rip, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean_rip, layout = "JAMA")
+
+################################################################################
+### Just for combination tillage 
+################################################################################
+df_modified_summary_comb <- df_modified %>% 
+  dplyr::filter(tillage_class == "Combination") %>% 
+  dplyr::group_by(site_display) %>% 
+  dplyr::summarise(mean = mean( relative_yld_change, na.rm = TRUE),
+                   sd = sd( relative_yld_change, na.rm = TRUE),
+                   n = n())
+
+df_modified_summary_comb
+m.mean_cob <- metamean(n = n,
+                       mean = mean,
+                       sd = sd,
+                       studlab = site_display,
+                       data = df_modified_summary_comb,
+                       sm = "MRAW",
+                       fixed = FALSE,
+                       random = TRUE,
+                       method.tau = "REML",
+                       method.random.ci = "HK",
+                       title = "Option 2")
+summary(m.mean_cob)
+meta::forest(m.mean_cob, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean_cob, layout = "JAMA")
 
 
 
@@ -153,7 +254,7 @@ df_modified_summary_site_tillage <- ungroup(df_modified_summary_site_tillage)
 dim(df_modified_summary_site_tillage)
 
 df_modified_summary_site_tillage <- df_modified_summary_site_tillage %>% arrange(mean) %>% 
-  dplyr::mutate(Index = seq(1:42))
+  dplyr::mutate(Index = seq(1:40))
 df_modified_summary_site_tillage
 
 #### all data
@@ -166,7 +267,7 @@ df_modified_summary_all <- df_modified %>% dplyr::group_by() %>%
 df_modified_summary_all <- ungroup(df_modified_summary_all)
 df_modified_summary_all
 df_modified_summary_all <- df_modified_summary_all %>% dplyr::arrange() %>% 
-  dplyr::mutate(Index = 47)
+  dplyr::mutate(Index = 41)
 
 df_modified_summary_tillage <- df_modified %>% dplyr::group_by(tillage_class) %>% 
   dplyr::summarise(mean = mean( relative_yld_change, na.rm = TRUE),
@@ -176,7 +277,7 @@ df_modified_summary_tillage <- df_modified %>% dplyr::group_by(tillage_class) %>
 df_modified_summary_tillage <- ungroup(df_modified_summary_tillage)
 df_modified_summary_tillage
 df_modified_summary_tillage <- df_modified_summary_tillage %>% dplyr::arrange() %>% 
- dplyr::mutate(Index = c( (42+1),(42+2), (42+3), +(42+4) ))
+ dplyr::mutate(Index = c( (41+1),(41+2), (41+3) ))
 
 df_modified_summary_all <- df_modified_summary_all %>% 
   dplyr::mutate(tillage_class = "All tillage",

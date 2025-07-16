@@ -29,6 +29,9 @@ df <- read.csv("N:/sandy soils conference/data/All_sites_cleaned/control_metadat
 
 # keep only one yield output
 str(df)
+unique(df$crop_group)
+unique(df$tillage_class)
+
 df_modified <- df %>% 
   dplyr::select(tillage_amendments_class,
          tillage_class,
@@ -44,6 +47,8 @@ df_modified <- df %>%
   filter(tillage_amendments_class != "Unmodified_amendment")
 
 str(df_modified)
+
+
 ################################################################################
 
 df_modified_summary <- df_modified %>% dplyr::group_by(tillage_amendments_class) %>% 
@@ -171,7 +176,7 @@ plot2_yld_gain <- df_modified_summary %>%
   ylab("Mean relative yield change (+/- standard error)") #+
 #labs(title = " gain above the control for tillage treatments")
 plot2_yld_gain
-
+df_modified_summary
 
 ###############################################################################
 #### agricolae_LSD
