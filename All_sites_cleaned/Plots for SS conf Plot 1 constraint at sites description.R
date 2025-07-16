@@ -7,12 +7,15 @@ library(stringr)
 
 df <- read.csv("N:/sandy soils conference/data/All_sites_cleaned/control_metadata_contraints_tillage_only_cleaned.csv" )
 
-
-
+unique(df$crop_group)
+unique(df$tillage_class)
 
 ################################################################################
 ## constraints at sandy soils sites
 str(df)
+
+
+
 ss_constaints <- df %>% distinct(site_display, .keep_all = TRUE) %>% 
   select(site_display, Repellence, Acidity, Physical, Nutrient)  
   
@@ -122,7 +125,13 @@ plot_constraints <- ss_constaints_summary_long %>%
   ylab("Precentage of site") + 
   labs(title = "")  
 plot_constraints
+ss_constaints_summary_long %>% filter(rank != "No problem") %>% arrange(percent)
 
+ss_constaints_summary_long %>% 
+  dplyr::filter(rank != "No problem") %>% 
+  dplyr::group_by(Constraint) %>% 
+  dplyr::summarise(percent_sum = sum(percent)) %>% 
+  arrange(percent_sum)
 
 ################################################################################
 
@@ -147,20 +156,28 @@ treatments_with_tillage %>%  group_by(tillage_amendments_class) %>%
   summarise(n = n())
 
 str(df)
-df %>%  group_by( ) %>% 
+numb_site_yr_treatments <- df %>%  group_by( ) %>% 
   summarise(n = n())
+numb_site_yr_treatments
+
+
 
 tillage_percent <- df %>%  group_by(tillage_class) %>% 
   summarise(n = n())
+tillage_percent
 tillage_percent <- tillage_percent %>% 
-  dplyr::mutate(percentage_tillage_type = (n /2458)*100) %>% 
-  dplyr::mutate(percentage_tillage_type_round = round(percentage_tillage_type,0))
+  dplyr::mutate(site_yr_treatments = numb_site_yr_treatments[1,1]) %>% 
+  dplyr::mutate(percentage_tillage_type = (n /site_yr_treatments)*100) %>% 
+  dplyr::mutate(percentage_tillage_type_round = round(percentage_tillage_type,0)) %>% 
+  arrange(percentage_tillage_type_round)
 tillage_percent
 
 
 tillage_amen_class_percent <- df %>%  group_by(tillage_amendments_class) %>% 
   summarise(n = n())
 tillage_amen_class_percent <- tillage_amen_class_percent %>% 
-  dplyr::mutate(percentage_tillage_type = (n /2458)*100) %>% 
-  dplyr::mutate(percentage_tillage_type_round = round(percentage_tillage_type,0))
+  dplyr::mutate(site_yr_treatments = numb_site_yr_treatments[1,1]) %>% 
+  dplyr::mutate(percentage_tillage_type = (n /site_yr_treatments)*100) %>% 
+  dplyr::mutate(percentage_tillage_type_round = round(percentage_tillage_type,0))%>% 
+  arrange(percentage_tillage_type_round)
 tillage_amen_class_percent
