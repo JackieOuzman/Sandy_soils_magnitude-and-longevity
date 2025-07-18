@@ -290,3 +290,4 @@ m.mean <- metamean(n = n,
                    title = "Option 2")
 summary(m.mean)
 # Then run the meta-regression
+

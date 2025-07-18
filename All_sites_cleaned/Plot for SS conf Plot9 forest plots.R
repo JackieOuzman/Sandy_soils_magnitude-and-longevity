@@ -22,7 +22,7 @@ unique(df$tillage_class)
 # keep only one yield output
 str(df)
 df_modified <- df %>% 
-  select(tillage_amendments_class,
+  dplyr::select(tillage_amendments_class,
          site_display,
          year,
          yield_gain,
@@ -545,6 +545,59 @@ all_tillage %>%
   theme(legend.title = element_blank())
 
 
+# Split into 2 plots 
+unique(all_tillage$site_display)
+
+all_tillage %>%
+  filter(site_display != "Brooker" & 
+           site_display != "Kooloonong" &
+           site_display != "Telopea Downs") %>%
+  filter(site_display %in% c("Buckleboo", "Kybunga" , "Tempy", "Younghusband", "Malinong",
+                             "Monia Gap", "Mt Damper", "Sherwood",  "Waikerie", "Warnertown",
+                             "Wynarka",  "Lowaldie" , "Lowaldie deep sand" )) %>% 
+mutate(site_display = factor(site_display, levels = site_order)) %>%
+  ggplot(
+    aes(
+      x = Years_trial,
+      y = Mean_relative_yld_change,
+      group = tillage_amendments_class
+    )
+  ) +
+  geom_line(aes(color = tillage_amendments_class), linewidth = 1) +
+  scale_color_manual(values = c("#CC9966", "#996633", "#99CC99", "#669966", "#99CCFF", "#4169E1")) +
+  facet_wrap(.~ site_display) +
+  xlab("Years after tillage") + 
+  ylab("Mean relative yield change") +
+  theme_bw() +
+  theme(legend.title = element_blank())+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
+
+
+all_tillage %>%
+  filter(site_display != "Brooker" & 
+           site_display != "Kooloonong" &
+           site_display != "Telopea Downs") %>%
+  filter(!site_display %in% c("Buckleboo", "Kybunga" , "Tempy", "Younghusband", "Malinong",
+                             "Monia Gap", "Mt Damper", "Sherwood",  "Waikerie", "Warnertown",
+                             "Wynarka",  "Lowaldie" , "Lowaldie deep sand" )) %>% 
+  mutate(site_display = factor(site_display, levels = site_order)) %>%
+  ggplot(
+    aes(
+      x = Years_trial,
+      y = Mean_relative_yld_change,
+      group = tillage_amendments_class
+    )
+  ) +
+  geom_line(aes(color = tillage_amendments_class), linewidth = 1) +
+  scale_color_manual(values = c("#CC9966", "#996633", "#99CC99", "#669966", "#99CCFF", "#4169E1")) +
+  facet_wrap(.~ site_display) +
+  xlab("Years after tillage") + 
+  ylab("Mean relative yield change") +
+  theme_bw() +
+  theme(legend.title = element_blank())+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
+
+
 
 ################################################################################
 #### site specific example ##################################################
@@ -560,14 +613,16 @@ all_tillage %>%
       group = tillage_amendments_class
     )
   ) +
-  geom_line(aes(color = tillage_amendments_class), linewidth = 1) +
+  geom_line(aes(color = tillage_amendments_class), linewidth = 1.5
+            ) +
   ylim(0, 150)+
   scale_color_manual(values = c( "#99CC99", "#669966")) +
   facet_wrap(.~ site_display) +
   xlab("Years after tillage") + 
   ylab("Mean relative yield change") +
   theme_bw() +
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank())+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
 
 
 
@@ -587,7 +642,7 @@ df_modified_2 <- df %>%
          Repellence,
          # rain,
          # crop,
-         # decile, 
+          decile, 
          yr_post_amelioration,
          amendments_no_amend,
          post_tillage_group,
@@ -618,18 +673,19 @@ Bute <- Bute %>%
     yr_post_amelioration ==6 ~ 7
   ))
 
-str(Bute)
+distinct(Bute, Years_trial, .keep_all = TRUE ) %>% select(Years_trial,year,yr_post_amelioration,decile, Decile_group )
 
 
 
-write_csv(Bute,"N:/sandy soils conference/data/All_sites_cleaned/Bute.csv" )
+#write_csv(Bute,"N:/sandy soils conference/data/All_sites_cleaned/Bute.csv" )
 ################################################################################
 ### Just Bute with no 'mixed amendments"
 
 unique(Bute$Descriptors)
 
 summaries_bute_no_mixed <- Bute %>% 
-  filter(Descriptors == "Rip.50_none"  |
+  filter(
+          #Descriptors == "Rip.50_none"  |
            Descriptors == "Rip.50_Fert.surface" |
            Descriptors == "Rip.50_Cl@20.incorp_20"|
            Descriptors == "Rip.50_Cl@5.incorp_20"  |
@@ -644,23 +700,42 @@ summaries_bute_no_mixed <- Bute %>%
   )) %>% 
   group_by(Years_trial, tillage_amendments_class, amendments_grouping, Rate) %>% 
   summarise(Mean_relative_yld_change = mean( relative_yld_change))
+
 summaries_bute_no_mixed <- summaries_bute_no_mixed %>% 
   mutate(amendments_grouping_rate = paste0(amendments_grouping, ". rate = ", Rate ))
 summaries_bute_no_mixed
 
 #plot
 summaries_bute_no_mixed %>%
-  ggplot(aes(
+  mutate(amendments_grouping_rate = factor(
+    amendments_grouping_rate,
+    levels = c(
+      "animal. rate = 5",
+      "animal. rate = 20",
+      "fertiliser. rate = various",
+      "non organic. rate = 100"
+    )
+  )) %>%
+  ggplot(
+    aes(
       x = Years_trial,
       y = Mean_relative_yld_change     ,
-      group = tillage_amendments_class
+      group = tillage_amendments_class,
+      color = tillage_amendments_class,
     )
   ) +
-  #geom_boxplot()+
-  geom_point()+
-  geom_line(aes(color = tillage_amendments_class), linewidth = 1) +
-  facet_wrap(.~ amendments_grouping_rate      ) +
-  xlab("Years after tillage") + 
+  geom_point() +
+  geom_line(linewidth = 2) +
+  scale_color_manual(values = c("cornflowerblue")) +
+  facet_wrap(. ~ amendments_grouping_rate, labeller = as_labeller(
+    c(
+      "animal. rate = 20" = "Chicken litter at 20 t/ha",
+      "animal. rate = 5" = "Chicken litter at 5 t/ha",
+      "fertiliser. rate = various" = "Fertiliser at various annual rates",
+      "non organic. rate = 100" = "Clay at 100 t/ha"
+    )
+  )) +
+  xlab("Years after tillage") +
   ylab("Mean relative yield change") +
   theme_bw() +
   theme(legend.position = "none")
@@ -669,6 +744,7 @@ summaries_bute_no_mixed %>%
 ### Just Bute with  'mixed amendments"
 
 unique(Bute$Descriptors)
+str(Bute)
 
 summaries_bute_mixed <- Bute %>% 
   filter(Descriptors != "Rip.50_none"  &
@@ -677,33 +753,200 @@ summaries_bute_mixed <- Bute %>%
            Descriptors != "Rip.50_Cl@5.incorp_20"  &
            Descriptors != "Rip.50_Clay.incorp_20"
   ) %>%
-  # mutate(Rate = case_when(
-  #   Descriptors == "Rip.50_Cl@20.incorp_20" ~ "20",
-  #   Descriptors == "Rip.50_Cl@5.incorp_20" ~ "5",
-  #   Descriptors == "Rip.50_none" ~ "0",
-  #   Descriptors == "Rip.50_Fert.surface" ~ "various",
-  #   Descriptors == "Rip.50_Clay.incorp_20" ~ "100",
-  # )) %>% 
-  group_by(Years_trial, tillage_amendments_class, amendments_grouping) %>% 
-  summarise(Mean_relative_yld_change = mean( relative_yld_change))
-# summaries_bute_mixed <- summaries_bute_no_mixed %>% 
-#   mutate(amendments_grouping_rate = paste0(amendments_grouping, ". rate = ", Rate ))
-summaries_bute_mixed
+  
+  #group_by(Years_trial, tillage_amendments_class, amendments_grouping) %>% 
+  group_by(Years_trial, Descriptors) %>% 
+  summarise(Mean_relative_yld_change = mean( relative_yld_change)) 
+
+summaries_bute_mixed %>% filter(Years_trial == 7)%>% arrange(Mean_relative_yld_change)
+unique(summaries_bute_mixed$Descriptors)
+
 
 #plot
+
 summaries_bute_mixed %>%
+  mutate(soil_amendments = factor(Descriptors, 
+                                  levels = c(
+                                    "Rip.50_Cl@20.incorp_20.Fert.surface" ,
+                                    "Rip.50_Cl@20.incorp_20.Fert.surface.Clay.incorp_20",
+                                    "Rip.50_Cl@20.incorp_20.Clay.incorp_20", 
+                                    "Rip.50_Cl@5.incorp_20.Fert.surface",         
+                                    "Rip.50_Cl@5.incorp_20.Fert.surface.Clay.incorp_20",         
+                                    "Rip.50_Cl@5.incorp_20.Clay.incorp_20", 
+                                    "Rip.50_Fert.surface.Clay.incorp_20"
+                                  ),
+                                  labels = c(
+                                    "Chicken litter @ 20 + Fertiliser" ,
+                                    "Chicken litter @ 20 + Fertiliser + Clay",
+                                    "Chicken litter @ 20 + Clay", 
+                                    "Chicken litter @ 5 + Fertiliser",       
+                                    "Chicken litter @ 5 + Fertiliser + Clay",          
+                                    "Chicken litter @ 5 + Clay", 
+                                    "Fertiliser + Clay"
+                                  )),
+         linetype_var = case_when(
+           grepl("Chicken litter @ 20", soil_amendments) ~ "solid",
+           grepl("Chicken litter @ 5", soil_amendments) ~ "dashed",
+           TRUE ~ "dotdash"
+         )) %>%
   ggplot(aes(
     x = Years_trial,
-    y = Mean_relative_yld_change     ,
-    group = tillage_amendments_class
+    y = Mean_relative_yld_change,
+    group = soil_amendments,
+    color = soil_amendments,
+    linetype = linetype_var
   )
   ) +
-  #geom_boxplot()+
   geom_point()+
-  geom_line( linewidth = 1) +
-  #facet_wrap(.~ amendments_grouping_rate      ) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("cornflowerblue", "cornflowerblue", "orange", "cornflowerblue", "cornflowerblue", "orange", "grey40")) +
+  scale_linetype_manual(values = c("solid" = "solid", "dashed" = "dashed", "dotdash" = "dotdash")) +
   xlab("Years after tillage") + 
   ylab("Mean relative yield change") +
   theme_bw() +
-  theme(legend.position = "none")
+  theme(legend.position = "bottom") +
+  guides(linetype = "none")
+
+################################################################################
+### Just karoonda with no 'mixed amendments"
+# Apply to main plot
+all_tillage %>%
+  filter(site_display == "Karoonda" ) %>%
+  mutate(site_display = factor(site_display, levels = site_order)) %>%
+  ggplot(
+    aes(
+      x = Years_trial,
+      y = Mean_relative_yld_change,
+      group = tillage_amendments_class,
+      
+    )
+  ) +
+  geom_line(aes(color = tillage_amendments_class), linewidth = 2) +
+  #ylim(-10, 175)+
+  scale_color_manual(values = c( "#99CC99", "#669966")) +
+  facet_wrap(.~ site_display) +
+  xlab("Years after tillage") + 
+  ylab("Mean relative yield change") +
+  theme_bw() +
+  theme(legend.title = element_blank())+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
+
+#########################################################################
+
+str(df_modified_2)
+Karoonda <- df_modified_2 %>% 
+  filter(site_display == "Karoonda" )
+
+str(Karoonda)
+### helper with plotting
+unique(Karoonda$yr_post_amelioration)
+Karoonda <- Karoonda %>% 
+  mutate(Years_trial = case_when(
+    yr_post_amelioration ==0 ~ 1,
+    yr_post_amelioration ==1 ~ 2,
+    yr_post_amelioration ==2 ~ 3,
+    yr_post_amelioration ==3 ~ 4,
+    yr_post_amelioration ==4 ~ 5,
+    yr_post_amelioration ==5 ~ 6,
+    yr_post_amelioration ==6 ~ 7
+  ))
+
+str(Karoonda)
+unique(Karoonda$Descriptors)
+
+summaries_Karoonda_no_mixed <- Karoonda %>% 
+  filter(
+      #Descriptors == "Spade.30_none"   |
+      Descriptors ==  "Spade.30_Fert.incorp_30"   |
+      Descriptors ==  "Spade.30_Clay.incorp_30" |
+      Descriptors ==  "Spade.30_Lc.incorp_30"   
+  ) %>%
+  mutate(label1 = case_when(
+    Descriptors == "Spade.30_Fert.incorp_30"  ~ "Fertiliser",
+    Descriptors == "Spade.30_Clay.incorp_30" ~ "Clay",
+    Descriptors == "Spade.30_Lc.incorp_30" ~ "Lucerne"
+   
+  )) %>% 
+  group_by(Years_trial, tillage_amendments_class, label1, ) %>% 
+  summarise(Mean_relative_yld_change = mean( relative_yld_change))
+
+summaries_Karoonda_no_mixed <- summaries_Karoonda_no_mixed %>% 
+  mutate(amendments_grouping = paste0(amendments_grouping, ". rate = ", Rate ))
+summaries_Karoonda_no_mixed
+
+#plot
+summaries_Karoonda_no_mixed %>%
+  mutate(label1  = factor(
+    label1,
+    levels = c(
+      "Lucerne",
+      "Fetiliser",
+      "Clay"
+        )
+  )) %>%
+  ggplot(
+    aes(
+      x = Years_trial,
+      y = Mean_relative_yld_change 
+         )
+  ) +
+  geom_point() +
+  geom_line(linewidth = 2, colour = "cornflowerblue") +
+  ylim(-30, 175)+
+  facet_wrap(. ~ label1)+
+  xlab("Years after tillage") +
+  ylab("Mean relative yield change") +
+  theme_bw() +
+  theme(legend.position = "none")+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
+
+################################################################################
+
+summaries_karoonda_mixed <-   Karoonda %>% 
+  filter(
+    Descriptors != "Spade.30_none"   &
+    Descriptors !=  "Spade.30_Fert.incorp_30"   &
+      Descriptors !=  "Spade.30_Clay.incorp_30" &
+      Descriptors !=  "Spade.30_Lc.incorp_30"   
+  ) %>%
+  group_by(Years_trial, Descriptors) %>% 
+  summarise(Mean_relative_yld_change = mean( relative_yld_change)) 
+
+summaries_karoonda_mixed %>% filter(Years_trial == 5)%>% arrange(Mean_relative_yld_change)
+unique(summaries_karoonda_mixed$Descriptors)
+
+
+
+summaries_karoonda_mixed %>%
+  mutate(soil_amendments = factor(Descriptors, 
+                                  levels = c(
+                                    "Spade.30_Fert.incorp_30.Clay.incorp_30" ,
+                                    "Spade.30_Lc.incorp_30.Fert.incorp_30.Clay.incorp_30",
+                                    "Spade.30_Lc.incorp_30.Clay.incorp_30", 
+                                    "Spade.30_Lc.incorp_30.Fert.incorp_30"
+                                  ),
+                                  labels = c(
+                                    "Fertiliser + Clay" ,
+                                    "Lucerne + Fertiliser + Clay",
+                                    "Lucerne +  Clay", 
+                                    "Lucerne + Fertiliser"
+                                  )))%>%
+  ggplot(aes(
+    x = Years_trial,
+    y = Mean_relative_yld_change,
+    group = soil_amendments,
+    color = soil_amendments,
+    #linetype = linetype_var
+  )
+  ) +
+  geom_point()+
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c("cornflowerblue", "grey", "orange", "black")) +
+  #scale_linetype_manual(values = c("solid" = "solid", "dashed" = "dashed", "dotdash" = "dotdash")) +
+  xlab("Years after tillage") + 
+  ylab("Mean relative yield change") +
+  theme_bw() +
+  theme(legend.position = "right") +
+  guides(linetype = "none")+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")
 

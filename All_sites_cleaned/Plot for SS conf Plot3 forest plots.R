@@ -30,7 +30,8 @@ df_modified <- df %>%
          yield_gain,
          yield,
          control_yield,
-         tillage_amendments_class
+         tillage_amendments_class,
+         amendments_no_amend
   ) %>% 
   dplyr::mutate(site_year = paste0(site_display,"_", year)) %>% 
   filter(tillage_amendments_class != "Unmodified_amendment")
@@ -375,3 +376,38 @@ plot2_comb <- df_modified_summary_v2 %>%
 #axis.text.x=element_blank(),
 #axis.ticks.x=element_blank())
 plot2_comb
+
+
+
+###############################################################################
+### meta analysis by site by with just mixing or ripping no amendments 
+
+str(df_modified)
+df_modified_summary_no_amendments <- df_modified %>% 
+  dplyr::filter(amendments_no_amend == "no_amendment") %>% 
+  dplyr::group_by(site_display) %>% 
+  dplyr::summarise(mean = mean( relative_yld_change, na.rm = TRUE),
+                   sd = sd( relative_yld_change, na.rm = TRUE),
+                   n = n())
+
+df_modified_summary_no_amendments
+m.mean <- metamean(n = n,
+                   mean = mean,
+                   sd = sd,
+                   studlab = site_display,
+                   data = df_modified_summary_no_amendments,
+                   sm = "MRAW",
+                   fixed = FALSE,
+                   random = TRUE,
+                   method.tau = "REML",
+                   method.random.ci = "HK",
+                   title = "Option 2")
+summary(m.mean)
+meta::forest(m.mean, 
+             sortvar = mean,
+             prediction = TRUE, 
+             print.tau2 = FALSE,
+             leftlabs = c("Author", "g", "SE"))
+
+meta::forest(m.mean, layout = "JAMA")
+
